@@ -1,0 +1,3 @@
+-- Run `npm run db:seed` after applying migration. This file documents the deterministic seed contract.
+-- CMC must contain exactly these four schedules:
+-- 2026-12-12..2026-12-13, 2026-12-21..2026-12-22, 2026-12-23, 2026-12-25.

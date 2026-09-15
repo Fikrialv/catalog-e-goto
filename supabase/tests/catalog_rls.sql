@@ -1,0 +1,3 @@
+-- Run with `supabase test db` after linking a project.
+-- Anonymous users may select published documents only; draft and archived rows must remain invisible.
+-- Authenticated users require an ADMIN/EDITOR profile for writes; VIEWER is read-only.

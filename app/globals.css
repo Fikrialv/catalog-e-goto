@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+:root {
+  --font-display: "Creato Display", Arial, Helvetica, sans-serif;
+  --brand-primary: #63b1b0;
+  --brand-teal-dark: #064e4f;
+  --brand-primary-dark: #064e4f;
+  --brand-primary-soft: #d5e5e5;
+  --paper: #d5e5e5;
+  --ink: #064e4f;
+  --ink-muted: #416b6c;
+  --card: #ffffff;
+  --accent: #63b1b0;
+  --line: rgba(6, 78, 79, 0.14);
+}
+
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-teal-dark: var(--brand-teal-dark);
+  --color-primary-dark: var(--brand-primary-dark);
+  --color-primary-soft: var(--brand-primary-soft);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-display);
+}
+
+@font-face {
+  font-family: "Creato Display";
+  src: url("/fonts/creato-display-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Creato Display";
+  src: url("/fonts/creato-display-medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Creato Display";
+  src: url("/fonts/creato-display-bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Creato Display";
+  src: url("/fonts/creato-display-extrabold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+a,
+select,
+input {
+  touch-action: manipulation;
+}
+
+::selection {
+  background: var(--brand-primary);
+  color: #ffffff;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.eyebrow-on-dark {
+  color: #fff;
+}
+
+.hero-brand-background {
+  background-color: var(--paper);
+  background-image: url("/brand/hero-page.avif");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.hero-brand-overlay {
+  display: none;
+}
+
+.customer-hero-surface {
+  background-color: var(--paper);
+  background-image: url("/brand/hero-page.avif");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.landing-surface {
+  background-color: var(--paper);
+  background-image: url("/brand/background-baru.avif");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.catalog-surface {
+  min-height: 100vh;
+  background-color: var(--paper);
+  background-image: url("/brand/background-baru.avif");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.brand-pattern {
+  background-image: url("/brand/background-baru.avif");
+  background-position: center;
+  background-size: cover;
+  filter: blur(1.5px);
+  opacity: 0.08;
+  transform: scale(1.03);
+}
+
+.hero-marquee-track {
+  animation: egoto-marquee 42s linear infinite;
+  contain: layout paint;
+  will-change: transform;
+}
+
+.whatsapp-button__orb {
+  animation: egoto-whatsapp-orb 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes egoto-whatsapp-orb {
+  0%,
+  72%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  10% {
+    transform: translateX(-6px) rotate(8deg);
+  }
+  18% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes egoto-marquee {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-marquee-track {
+    animation-duration: 90s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-marquee-card:hover .hero-marquee-image {
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .hero-marquee-track {
+    animation-duration: 90s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
