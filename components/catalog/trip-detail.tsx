@@ -325,7 +325,9 @@ export function TripDetail({
                             >
                               {formatCustomerPrice(price.amount, currency)}
                             </del>
-                            <span className={`block ${selected ? "text-white" : "text-primary-dark"}`}>
+                            <span
+                              className={`block ${selected ? "text-white" : "text-primary-dark"}`}
+                            >
                               {formatCustomerPrice(
                                 getDiscountedPriceAmount(
                                   price,
@@ -355,6 +357,7 @@ export function TripDetail({
                   schedule={selectedSchedule}
                   price={whatsappPrice}
                   voucherRedemptionId={voucherRedemption?.redemptionId}
+                  voucherAmount={voucherRedemption?.amount}
                 />
               </div>
             </section>
