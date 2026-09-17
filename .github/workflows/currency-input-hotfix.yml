@@ -22,16 +22,27 @@ jobs:
           from pathlib import Path
           import re
 
-          path = Path("components/admin/catalog-editor.tsx")
-          text = path.read_text()
+          catalog = Path("components/admin/catalog-editor.tsx")
+          text = catalog.read_text()
           pattern = re.compile(
               r'Math\.round\(\s*Number\(\s*event\.target\.value\.replace\(/\\D/g, ""\),?\s*\)\s*/\s*1000,?\s*\)\s*\*\s*1000',
               re.S,
           )
-          text, count = pattern.subn('Number(event.target.value.replace(/\\D/g, ""))', text)
+          text, count = pattern.subn(
+              lambda _: 'Number(event.target.value.replace(/\\D/g, ""))',
+              text,
+          )
           if count != 2:
-              raise SystemExit(f"Expected 2 rounded Rupiah inputs, found {count}")
-          path.write_text(text)
+              raise SystemExit(f"Expected 2 rounded catalog Rupiah inputs, found {count}")
+          catalog.write_text(text)
+
+          voucher = Path("components/admin/voucher-dashboard.tsx")
+          vtext = voucher.read_text()
+          old = '<input required min="1000" type="number" value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none" />'
+          new = '<input required inputMode="numeric" value={amount ? `Rp ${Number(amount).toLocaleString("id-ID")}` : ""} onChange={(event) => setAmount(event.target.value.replace(/\\D/g, ""))} placeholder="50.000" className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none tabular-nums" />'
+          if old not in vtext:
+              raise SystemExit("Voucher amount input pattern not found")
+          voucher.write_text(vtext.replace(old, new, 1))
       - name: Validate
         run: |
           npm ci
@@ -41,6 +52,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/currency-input-hotfix.yml
-          git add components/admin/catalog-editor.tsx
-          git commit -m "fix: make catalog Rupiah fields editable"
+          git add components/admin/catalog-editor.tsx components/admin/voucher-dashboard.tsx
+          git commit -m "fix: make Rupiah fields editable"
           git push
