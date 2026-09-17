@@ -898,9 +898,7 @@ export function CatalogEditor({
                       }}
                       className={`${inputClass} tabular-nums`}
                     >
-                      {Array.from({ length: 40 }, (_, index) =>
-                        (index + 1) * 5000,
-                      ).map((value) => (
+                      {[25000, 50000, 100000, 125000, 150000, 175000, 200000].map((value) => (
                         <option key={value} value={value}>
                           Rp {value.toLocaleString("id-ID")}
                         </option>
