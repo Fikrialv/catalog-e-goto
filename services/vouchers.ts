@@ -1,5 +1,8 @@
 import { createHmac } from "node:crypto";
-import { getDiscountedPriceAmount, getDestinationHighlights } from "@/lib/catalog-utils";
+import {
+  getDiscountedPriceAmount,
+  getDestinationHighlights,
+} from "@/lib/catalog-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeVoucherCode } from "@/lib/voucher-validation";
 import type { PriceOption, TripDestination } from "@/types/catalog";
@@ -15,6 +18,13 @@ type VoucherRow = {
   redeemed_count: number;
   status: Voucher["status"];
   created_at: string;
+};
+
+type VoucherRedemptionRow = {
+  id: string;
+  voucher_id: string;
+  amount: number | string;
+  final_amount: number | string;
 };
 
 function voucherSecret() {
@@ -51,8 +61,11 @@ function fromRow(row: VoucherRow): Voucher {
 export async function listVouchers() {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
-  const { data, error } = await supabase.from("vouchers").select("*")
-    .order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await supabase
+    .from("vouchers")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (error) throw error;
   return (data ?? []).map((row) => fromRow(row as VoucherRow));
 }
@@ -66,9 +79,14 @@ export async function createVoucher(input: {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
   const { error } = await supabase.from("vouchers").insert({
-    id: hashCode(input.code), code_preview: codePreview(input.code),
-    destination_id: input.destination.id, destination_name: input.destination.name,
-    amount: input.amount, usage_limit: input.usageLimit, redeemed_count: 0, status: "active",
+    id: hashCode(input.code),
+    code_preview: codePreview(input.code),
+    destination_id: input.destination.id,
+    destination_name: input.destination.name,
+    amount: input.amount,
+    usage_limit: input.usageLimit,
+    redeemed_count: 0,
+    status: "active",
   });
   if (error?.code === "23505") throw new Error("Kode voucher sudah digunakan.");
   if (error) throw error;
@@ -76,7 +94,8 @@ export async function createVoucher(input: {
 
 function priceAfterPromotion(destination: TripDestination, price: PriceOption) {
   return getDestinationHighlights(destination).reduce(
-    (lowest, offer) => Math.min(lowest, getDiscountedPriceAmount(price, offer)),
+    (lowest, offer) =>
+      Math.min(lowest, getDiscountedPriceAmount(price, offer)),
     price.amount,
   );
 }
@@ -89,13 +108,31 @@ export async function redeemVoucher(input: {
 }) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
+
   const { data, error } = await supabase.rpc("redeem_catalog_voucher", {
-    p_voucher_id: hashCode(input.code), p_destination_id: input.destination.id,
-    p_session_id: input.sessionId, p_price_id: input.price.id,
+    p_voucher_id: hashCode(input.code),
+    p_destination_id: input.destination.id,
+    p_session_id: input.sessionId,
+    p_price_id: input.price.id,
     p_base_amount: priceAfterPromotion(input.destination, input.price),
   });
+
   if (error) throw new Error(error.message);
-  const row = data?.[0] as VoucherRedemption | undefined;
+
+  const row = data?.[0] as VoucherRedemptionRow | undefined;
   if (!row) throw new Error("Voucher tidak dapat digunakan.");
-  return row;
+
+  const amount = Number(row.amount);
+  const finalAmount = Number(row.final_amount);
+
+  if (!Number.isFinite(amount) || !Number.isFinite(finalAmount)) {
+    throw new Error("Nominal voucher tidak valid. Silakan coba lagi.");
+  }
+
+  return {
+    id: row.id,
+    voucherId: row.voucher_id,
+    amount,
+    finalAmount,
+  } satisfies VoucherRedemption;
 }
