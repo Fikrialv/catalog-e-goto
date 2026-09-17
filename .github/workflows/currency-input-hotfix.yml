@@ -1,0 +1,46 @@
+name: One-time Rupiah input hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/currency-input-hotfix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fix monetary inputs
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("components/admin/catalog-editor.tsx")
+          text = path.read_text()
+          pattern = re.compile(
+              r'Math\.round\(\s*Number\(\s*event\.target\.value\.replace\(/\\D/g, ""\),?\s*\)\s*/\s*1000,?\s*\)\s*\*\s*1000',
+              re.S,
+          )
+          text, count = pattern.subn('Number(event.target.value.replace(/\\D/g, ""))', text)
+          if count != 2:
+              raise SystemExit(f"Expected 2 rounded Rupiah inputs, found {count}")
+          path.write_text(text)
+      - name: Validate
+        run: |
+          npm ci
+          npm run typecheck
+      - name: Commit fix and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/currency-input-hotfix.yml
+          git add components/admin/catalog-editor.tsx
+          git commit -m "fix: make catalog Rupiah fields editable"
+          git push
