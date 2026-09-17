@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
   },
   images: {
     localPatterns: [{ pathname: "/images/**" }, { pathname: "/brand/**" }],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "udjnspiryqefgeqtgdpt.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
   },
   async headers() {
     return [
