@@ -3,16 +3,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getDestinationBySlug } from "@/services/catalog";
-import { getPublicCatalogRepository } from "@/services/catalog-repository";
 import { TripDetail } from "@/components/catalog/trip-detail";
 import { SiteHeader } from "@/components/site/site-header";
 
 export const dynamic = "force-dynamic";
-
-export async function generateStaticParams() {
-  const destinations = await getPublicCatalogRepository().listPublic();
-  return destinations.map((destination) => ({ slug: destination.slug }));
-}
 
 export async function generateMetadata({
   params,
