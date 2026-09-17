@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const VOUCHER_DISCOUNT_OPTIONS = [
+  25_000,
+  50_000,
+  100_000,
+  125_000,
+  150_000,
+  175_000,
+  200_000,
+] as const;
+
 export const voucherCodeSchema = z
   .string()
   .trim()
@@ -9,14 +19,15 @@ export const voucherCodeSchema = z
 export const createVoucherSchema = z.object({
   code: voucherCodeSchema,
   destinationId: z.string().min(1).max(160),
-  amount: z.coerce
-    .number()
-    .int()
-    .min(5_000, "Potongan minimal Rp5.000.")
-    .max(200_000, "Potongan maksimal Rp200.000.")
-    .refine((value) => value % 5_000 === 0, {
-      message: "Potongan harus kelipatan Rp5.000.",
-    }),
+  amount: z.coerce.number().int().refine(
+    (value) => VOUCHER_DISCOUNT_OPTIONS.includes(
+      value as (typeof VOUCHER_DISCOUNT_OPTIONS)[number],
+    ),
+    {
+      message:
+        "Potongan voucher harus salah satu dari Rp25.000, Rp50.000, Rp100.000, Rp125.000, Rp150.000, Rp175.000, atau Rp200.000.",
+    },
+  ),
   usageLimit: z.coerce.number().int().min(1).max(100_000),
 });
 
