@@ -21,6 +21,15 @@ function isApprovedHighlightDiscount(value: unknown): value is number {
   );
 }
 
+function nearestApprovedHighlightDiscount(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return HIGHLIGHT_DISCOUNT_OPTIONS.reduce((closest, option) =>
+    Math.abs(option - value) < Math.abs(closest - value) ? option : closest,
+  );
+}
+
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Gunakan tanggal YYYY-MM-DD.");
@@ -235,21 +244,24 @@ function migrateLegacyHighlight(value: unknown): unknown {
       normalAmount !== undefined && discountAmount !== undefined
         ? normalAmount - discountAmount
         : undefined;
+
     const normalizedCut = isApprovedHighlightDiscount(source.discountValue)
       ? source.discountValue
-      : isApprovedHighlightDiscount(derivedCut)
-        ? derivedCut
-        : undefined;
+      : nearestApprovedHighlightDiscount(derivedCut) ??
+        nearestApprovedHighlightDiscount(source.discountValue);
 
     const normalized = { ...source };
     delete normalized.date;
     delete normalized.itinerary;
     delete normalized.sortOrder;
 
-    if (normalizedCut !== undefined) {
+    if (
+      normalizedCut !== undefined &&
+      (normalAmount === undefined || normalAmount > normalizedCut)
+    ) {
       normalized.discountType = "fixed";
       normalized.discountValue = normalizedCut;
-      if (normalAmount !== undefined && normalAmount > normalizedCut) {
+      if (normalAmount !== undefined) {
         normalized.discountAmount = normalAmount - normalizedCut;
       }
     }
