@@ -6,7 +6,32 @@ import { requireAdmin } from "@/services/auth";
 import { getPublishedDestinations } from "@/services/catalog";
 import { listVouchers } from "@/services/vouchers";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminVouchersPage() {
-  const [user, destinations, vouchers] = await Promise.all([requireAdmin(), getPublishedDestinations(), listVouchers()]);
-  return <main className="catalog-surface min-h-screen px-5 py-8 sm:px-8 lg:px-12"><div className="mx-auto max-w-[1440px]"><header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Dashboard admin</Link><p className="eyebrow mt-10">Admin voucher</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.055em] text-ink">Kode untuk inquiry.</h1><p className="mt-3 text-sm text-ink-muted">{user.email} · nominal voucher tidak dapat melampaui harga trip.</p></div><LogoutButton /></header><VoucherDashboard destinations={destinations} vouchers={vouchers} canEdit={user.role !== "VIEWER"} /></div></main>;
+  const [user, destinations, vouchers] = await Promise.all([
+    requireAdmin(),
+    getPublishedDestinations(),
+    listVouchers(),
+  ]);
+
+  return (
+    <main className="catalog-surface min-h-screen px-5 py-8 sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-[1440px]">
+        <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-ink-muted hover:text-ink">
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />Dashboard admin
+            </Link>
+            <p className="eyebrow mt-10">Admin voucher</p>
+            <h1 className="mt-3 font-serif text-5xl tracking-[-0.055em] text-ink">Kode untuk inquiry.</h1>
+            <p className="mt-3 text-sm text-ink-muted">{user.email} · nominal voucher tidak dapat melampaui harga trip.</p>
+          </div>
+          <LogoutButton />
+        </header>
+        <VoucherDashboard destinations={destinations} vouchers={vouchers} canEdit={user.role !== "VIEWER"} />
+      </div>
+    </main>
+  );
 }
