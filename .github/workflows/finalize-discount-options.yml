@@ -41,4 +41,5 @@ jobs:
           git rm .github/workflows/finalize-discount-options.yml
           git add components/admin/catalog-editor.tsx
           git commit -m "fix: use approved highlight discount choices"
+          git pull --rebase origin main
           git push
