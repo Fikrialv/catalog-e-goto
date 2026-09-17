@@ -2,7 +2,8 @@ name: Fix discount color
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/fix-discount-color.yml']
+    paths:
+      - .github/workflows/fix-discount-color.yml
 permissions:
   contents: write
 jobs:
@@ -10,8 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sed -i 's/className="block text-primary-dark"/className={`block ${selected ? "text-white" : "text-primary-dark"}`}/' components/catalog/trip-detail.tsx
-      - run: |
+      - name: Patch selected discount color
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('components/catalog/trip-detail.tsx')
+          text = path.read_text()
+          old = '<span className="block text-primary-dark">'
+          new = '<span className={`block ${selected ? "text-white" : "text-primary-dark"}`}>'
+          if old not in text:
+              raise SystemExit('target not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit
+        run: |
           git config user.name github-actions
           git config user.email actions@github.com
           git add components/catalog/trip-detail.tsx
