@@ -18,15 +18,18 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
+
           p = Path('components/admin/catalog-editor.tsx')
           s = p.read_text()
-          old = '''                      {Array.from({ length: 40 }, (_, index) =>
-                        (index + 1) * 5000,
-                      ).map((value) => ('''
-          new = '''                      {[25000, 50000, 100000, 125000, 150000, 175000, 200000].map((value) => ('''
-          if old not in s:
-              raise SystemExit('highlight option block not found')
-          p.write_text(s.replace(old, new, 1))
+          pattern = re.compile(
+              r'\{Array\.from\(\{ length: 40 \}, \(_, index\) =>\s*\(index \+ 1\) \* 5000,?\s*\)\.map\(\(value\) => \('
+          )
+          replacement = '{[25000, 50000, 100000, 125000, 150000, 175000, 200000].map((value) => ('
+          s, count = pattern.subn(replacement, s, count=1)
+          if count != 1:
+              raise SystemExit(f'expected 1 highlight option block, found {count}')
+          p.write_text(s)
       - name: Typecheck
         run: |
           npm ci
