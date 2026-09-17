@@ -1,0 +1,53 @@
+name: Discount scope fix
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/discount-scope-fix.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/catalog-utils.ts')
+          s = p.read_text()
+          s = s.replace('''  if (offer.discountType === "percentage" && offer.discountValue) {\n    return roundRupiah(price.amount * (1 - offer.discountValue / 100));\n  }\n  if (offer.discountType === "fixed" && offer.discountValue) {\n    return Math.max(0, price.amount - offer.discountValue);\n  }\n  return price.id === offer.priceId ? offer.discountAmount : price.amount;''','''  if (price.id !== offer.priceId) return price.amount;\n  return Math.max(0, offer.discountAmount);''')
+          p.write_text(s)
+
+          p = Path('components/catalog/trip-detail.tsx')
+          s = p.read_text()
+          s = s.replace('"Discount active for every meeting point and available departure schedule."','"Discount applies only to the selected promo meeting point and departure schedule."')
+          s = s.replace('"Diskon aktif untuk semua titik keberangkatan dan jadwal keberangkatan tersedia."','"Diskon hanya berlaku untuk titik keberangkatan dan jadwal promo yang dipilih admin."')
+          s = s.replace('publishedSchedules[0]?.id ?? "",','highlightOffer?.scheduleId ?? publishedSchedules[0]?.id ?? "",',1)
+          s = s.replace('const isDiscountedPrice = Boolean(highlightOffer);','const isDiscountedPrice = Boolean(highlightOffer && price.id === highlightOffer.priceId);')
+          s = s.replace('<span className="block text-primary-dark">','<span className={selected ? "block text-white" : "block text-primary-dark"}>',1)
+          p.write_text(s)
+
+          p = Path('components/catalog/destination-card.tsx')
+          s = p.read_text()
+          s = s.replace('Applies to all meeting points','Selected promo meeting point')
+          s = s.replace('all available schedules','selected promo schedule')
+          s = s.replace('Berlaku untuk semua titik keberangkatan','Meeting point promo terpilih')
+          s = s.replace('semua jadwal tersedia','jadwal promo terpilih')
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/discount-scope-fix.yml
+          git add lib/catalog-utils.ts components/catalog/trip-detail.tsx components/catalog/destination-card.tsx
+          git commit -m "fix: scope highlight to selected meeting point"
+          git push
