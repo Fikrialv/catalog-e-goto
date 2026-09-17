@@ -325,7 +325,7 @@ export function TripDetail({
                             >
                               {formatCustomerPrice(price.amount, currency)}
                             </del>
-                            <span className="block text-primary-dark">
+                            <span className={`block ${selected ? "text-white" : "text-primary-dark"}`}>
                               {formatCustomerPrice(
                                 getDiscountedPriceAmount(
                                   price,
