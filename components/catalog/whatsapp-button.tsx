@@ -16,11 +16,13 @@ export function WhatsAppButton({
   schedule,
   price,
   voucherRedemptionId,
+  voucherAmount,
 }: {
   destination: TripDestination;
   schedule: DepartureSchedule | undefined;
   price: PriceOption;
   voucherRedemptionId?: string;
+  voucherAmount?: number;
 }) {
   const { language } = useCustomerPreferences();
   const copy =
@@ -28,7 +30,8 @@ export function WhatsAppButton({
       ? {
           ask: "Ask via WhatsApp",
           unavailable: "WhatsApp number is not configured.",
-          inquiry: "Your inquiry includes selected destination, date, and meeting point.",
+          inquiry:
+            "Your inquiry includes selected destination, date, and meeting point.",
         }
       : {
           ask: "Tanya via WhatsApp",
@@ -39,7 +42,13 @@ export function WhatsAppButton({
   const scheduleLabel = schedule
     ? formatScheduleLabel(schedule)
     : "Belum dipilih";
-  const href = whatsappHref(destination, scheduleLabel, price, voucherRedemptionId);
+  const href = whatsappHref(
+    destination,
+    scheduleLabel,
+    price,
+    voucherRedemptionId,
+    voucherAmount,
+  );
 
   if (!WHATSAPP_NUMBER || !href) {
     return (
