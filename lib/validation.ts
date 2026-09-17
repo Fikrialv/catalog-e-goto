@@ -1,6 +1,26 @@
 import { z } from "zod";
 import type { TripDestination } from "@/types/catalog";
 
+const HIGHLIGHT_DISCOUNT_OPTIONS = [
+  25_000,
+  50_000,
+  100_000,
+  125_000,
+  150_000,
+  175_000,
+  200_000,
+] as const;
+
+function isApprovedHighlightDiscount(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    HIGHLIGHT_DISCOUNT_OPTIONS.includes(
+      value as (typeof HIGHLIGHT_DISCOUNT_OPTIONS)[number],
+    )
+  );
+}
+
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Gunakan tanggal YYYY-MM-DD.");
@@ -65,10 +85,9 @@ const highlight = z.object({
   discountValue: z
     .number()
     .int()
-    .min(5_000, "Potongan highlight minimal Rp5.000.")
-    .max(200_000, "Potongan highlight maksimal Rp200.000.")
-    .refine((value) => value % 5_000 === 0, {
-      message: "Potongan highlight harus kelipatan Rp5.000.",
+    .refine(isApprovedHighlightDiscount, {
+      message:
+        "Potongan highlight harus Rp25.000, Rp50.000, Rp100.000, Rp125.000, Rp150.000, Rp175.000, atau Rp200.000.",
     })
     .optional(),
 });
@@ -133,16 +152,13 @@ export const destinationPayloadSchema = z
       const path = ["highlights", index];
       if (
         offer.discountType !== "fixed" ||
-        !offer.discountValue ||
-        offer.discountValue < 5_000 ||
-        offer.discountValue > 200_000 ||
-        offer.discountValue % 5_000 !== 0
+        !isApprovedHighlightDiscount(offer.discountValue)
       ) {
         context.addIssue({
           code: "custom",
           path: [...path, "discountValue"],
           message:
-            "Potongan highlight harus Rp5.000–Rp200.000 dan kelipatan Rp5.000.",
+            "Potongan highlight harus menggunakan salah satu nominal discount yang tersedia.",
         });
       }
       if (!normalPrice) {
@@ -181,6 +197,7 @@ function migrateLegacyHighlight(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const payload = { ...(value as Record<string, unknown>) };
   const schedules = Array.isArray(payload.schedules) ? payload.schedules : [];
+  const prices = Array.isArray(payload.prices) ? payload.prices : [];
   const legacy = payload.highlight;
   const current = Array.isArray(payload.highlights) ? payload.highlights : [];
   const offers = current.length
@@ -201,10 +218,42 @@ function migrateLegacyHighlight(value: unknown): unknown {
       typeof source.scheduleId === "string"
         ? source.scheduleId
         : (matchedSchedule?.id as string | undefined);
+
+    const matchedPrice = prices.find(
+      (entry) =>
+        entry &&
+        typeof entry === "object" &&
+        (entry as Record<string, unknown>).id === source.priceId,
+    ) as Record<string, unknown> | undefined;
+    const normalAmount =
+      typeof matchedPrice?.amount === "number" ? matchedPrice.amount : undefined;
+    const discountAmount =
+      typeof source.discountAmount === "number"
+        ? source.discountAmount
+        : undefined;
+    const derivedCut =
+      normalAmount !== undefined && discountAmount !== undefined
+        ? normalAmount - discountAmount
+        : undefined;
+    const normalizedCut = isApprovedHighlightDiscount(source.discountValue)
+      ? source.discountValue
+      : isApprovedHighlightDiscount(derivedCut)
+        ? derivedCut
+        : undefined;
+
     const normalized = { ...source };
     delete normalized.date;
     delete normalized.itinerary;
     delete normalized.sortOrder;
+
+    if (normalizedCut !== undefined) {
+      normalized.discountType = "fixed";
+      normalized.discountValue = normalizedCut;
+      if (normalAmount !== undefined && normalAmount > normalizedCut) {
+        normalized.discountAmount = normalAmount - normalizedCut;
+      }
+    }
+
     return {
       ...normalized,
       id:
