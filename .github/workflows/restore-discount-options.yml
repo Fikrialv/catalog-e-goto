@@ -1,0 +1,41 @@
+name: Restore discount options
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/restore-discount-options.yml"]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch options
+        shell: python
+        run: |
+          from pathlib import Path
+          opts = "[25_000, 50_000, 100_000, 125_000, 150_000, 175_000, 200_000]"
+          p = Path("components/admin/voucher-dashboard.tsx")
+          s = p.read_text()
+          s = s.replace('const discountOptions = Array.from({ length: 40 }, (_, index) => (index + 1) * 5_000);', f'const discountOptions = {opts};')
+          s = s.replace('Potongan tersedia mulai Rp5.000 sampai Rp200.000 dalam kelipatan Rp5.000.', 'Potongan tersedia: Rp25.000, Rp50.000, Rp100.000, Rp125.000, Rp150.000, Rp175.000, atau Rp200.000.')
+          p.write_text(s)
+
+          p = Path("components/admin/catalog-editor.tsx")
+          s = p.read_text()
+          old = '''                      {Array.from({ length: 40 }, (_, index) =>
+                        (index + 1) * 5000,
+                      ).map((value) => ('''
+          new = '''                      {[25_000, 50_000, 100_000, 125_000, 150_000, 175_000, 200_000].map((value) => ('''
+          if old not in s: raise SystemExit("highlight option block not found")
+          p.write_text(s.replace(old, new, 1))
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/restore-discount-options.yml
+          git add components/admin/voucher-dashboard.tsx components/admin/catalog-editor.tsx
+          git commit -m "fix: restore stable discount options"
+          git push
