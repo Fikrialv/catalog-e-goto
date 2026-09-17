@@ -7,6 +7,7 @@ import type { TripDestination } from "@/types/catalog";
 import type { Voucher } from "@/types/voucher";
 
 const rupiah = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
+const discountOptions = Array.from({ length: 40 }, (_, index) => (index + 1) * 5_000);
 
 export function VoucherDashboard({ destinations, vouchers, canEdit }: { destinations: TripDestination[]; vouchers: Voucher[]; canEdit: boolean }) {
   const router = useRouter();
@@ -42,11 +43,11 @@ export function VoucherDashboard({ destinations, vouchers, canEdit }: { destinat
     <section className="mt-10 grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
       <form onSubmit={create} className="rounded-[1.5rem] border border-ink/10 bg-primary-soft p-6 sm:p-7">
         <div className="flex items-center gap-2 text-ink"><Plus className="h-5 w-5" aria-hidden="true" /><h2 className="font-serif text-3xl tracking-[-0.04em]">Buat kode voucher</h2></div>
-        <p className="mt-3 text-sm leading-6 text-ink-muted">Nominal rupiah, untuk satu trip, dengan batas pemakaian yang Anda tetapkan.</p>
+        <p className="mt-3 text-sm leading-6 text-ink-muted">Potongan tersedia mulai Rp5.000 sampai Rp200.000 dalam kelipatan Rp5.000.</p>
         <div className="mt-6 space-y-4">
           <label className="block text-sm font-bold text-ink">Kode<input required value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="E-GOTO-HEMAT" className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 font-semibold uppercase outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" /></label>
           <label className="block text-sm font-bold text-ink">Trip<select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20">{destinations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select></label>
-          <div className="grid grid-cols-2 gap-3"><label className="block text-sm font-bold text-ink">Potongan (Rp)<input required inputMode="numeric" value={amount ? `Rp ${Number(amount).toLocaleString("id-ID")}` : ""} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))} placeholder="50.000" className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none tabular-nums" /></label><label className="block text-sm font-bold text-ink">Limit pakai<input required min="1" type="number" value={usageLimit} onChange={(event) => setUsageLimit(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none" /></label></div>
+          <div className="grid grid-cols-2 gap-3"><label className="block text-sm font-bold text-ink">Potongan (Rp)<select required value={amount} onChange={(event) => setAmount(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none tabular-nums">{discountOptions.map((value) => <option key={value} value={value}>{rupiah.format(value)}</option>)}</select></label><label className="block text-sm font-bold text-ink">Limit pakai<input required min="1" type="number" value={usageLimit} onChange={(event) => setUsageLimit(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 outline-none" /></label></div>
         </div>
         {message ? <p role="status" className="mt-4 text-sm font-semibold text-ink">{message}</p> : null}
         {canEdit ? <button disabled={loading || !destinations.length} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-white disabled:opacity-50"><Ticket className="h-4 w-4" aria-hidden="true" />{loading ? "Membuat…" : "Buat voucher"}</button> : <p className="mt-6 text-sm text-ink-muted">Akses view-only: kode tidak dapat dibuat.</p>}
