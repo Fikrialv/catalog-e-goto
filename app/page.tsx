@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
