@@ -5,18 +5,31 @@ import { getCatalogRepository } from "@/services/catalog-repository";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { LogoutButton } from "@/components/admin/logout-button";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminCatalogPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { user, records, params } = await (async () => {
-    const user = await requireAdmin();
+  const user = await requireAdmin();
+  const params = await searchParams;
+
+  let records = [];
+  let catalogError = "";
+
+  try {
     const repository = await getCatalogRepository();
-    const records = await repository.listAdmin();
-    const params = await searchParams;
-    return { user, records, params };
-  })();
+    records = await repository.listAdmin();
+  } catch (error) {
+    console.error("Admin catalog list failed", error);
+    catalogError =
+      error instanceof Error
+        ? error.message
+        : "Data katalog tidak dapat dimuat saat ini.";
+  }
+
   return (
     <main className="catalog-surface min-h-screen px-5 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1440px]">
@@ -34,8 +47,7 @@ export default async function AdminCatalogPage({
               Kelola informasi trip.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">
-              {user.email} · {user.role} ·{" "}
-              Supabase Auth
+              {user.email} · {user.role} · Supabase Auth
             </p>
           </div>
           <div className="flex gap-3">
@@ -68,6 +80,14 @@ export default async function AdminCatalogPage({
             className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800"
           >
             Akun Anda tidak memiliki akses untuk aksi tersebut.
+          </p>
+        ) : null}
+        {catalogError ? (
+          <p
+            role="alert"
+            className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"
+          >
+            Data katalog belum dapat dimuat: {catalogError}
           </p>
         ) : null}
         <AdminDashboard records={records} canEdit={user.role !== "VIEWER"} />
