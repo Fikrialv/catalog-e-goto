@@ -27,17 +27,35 @@ export function VoucherDashboard({ destinations, vouchers, canEdit }: { destinat
     setLoading(true);
     setMessage("");
     try {
-      const response = await fetch("/api/admin/vouchers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, destinationId, amount, usageLimit }) });
-      const result = (await response.json()) as { message?: string };
+      const response = await fetch("/api/admin/vouchers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, destinationId, amount, usageLimit }),
+      });
+
+      const contentType = response.headers.get("content-type") ?? "";
+      const result = contentType.includes("application/json")
+        ? ((await response.json()) as { message?: string })
+        : { message: (await response.text()).trim() };
+
       if (!response.ok) {
-        setMessage(result.message ?? "Voucher gagal dibuat.");
+        if (response.status === 401) {
+          setMessage(result.message || "Sesi admin berakhir. Silakan login ulang.");
+          return;
+        }
+        setMessage(result.message || `Voucher gagal dibuat (HTTP ${response.status}).`);
         return;
       }
+
       setMessage(`Voucher ${code} dibuat. Simpan atau bagikan kode ini sekarang; daftar hanya menampilkan kode tersamarkan.`);
       setCode("");
       router.refresh();
-    } catch {
-      setMessage("Koneksi gagal. Periksa jaringan lalu coba lagi.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? `Permintaan gagal: ${error.message}`
+          : "Permintaan ke server gagal. Coba muat ulang halaman.",
+      );
     } finally {
       setLoading(false);
     }
