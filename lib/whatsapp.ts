@@ -8,7 +8,10 @@ import {
   formatPrice,
   formatScheduleLabel,
 } from "@/lib/format";
-import { getDiscountedPriceAmount, getHighlightSchedule } from "@/lib/catalog-utils";
+import {
+  getDiscountedPriceAmount,
+  getHighlightSchedule,
+} from "@/lib/catalog-utils";
 
 export const WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") ?? "";
@@ -18,7 +21,14 @@ export function buildWhatsAppMessage(
   scheduleLabel: string,
   price: PriceOption,
   voucherRedemptionId?: string,
+  voucherAmount?: number,
 ) {
+  const hasVoucher = Boolean(
+    voucherRedemptionId &&
+      Number.isFinite(voucherAmount) &&
+      (voucherAmount ?? 0) > 0,
+  );
+
   return [
     "Halo E-GOTO,",
     "",
@@ -27,8 +37,13 @@ export function buildWhatsAppMessage(
     `Destinasi: ${destination.name}`,
     `Tanggal: ${scheduleLabel || "Belum dipilih"}`,
     `Titik keberangkatan: ${price.label}`,
-    `Harga: ${formatPrice(price.amount)}`,
-    ...(voucherRedemptionId ? [`ID penukaran voucher: ${voucherRedemptionId}`] : []),
+    ...(hasVoucher
+      ? [
+          `Potongan voucher: ${formatPrice(voucherAmount!)}`,
+          `Harga setelah voucher: ${formatPrice(price.amount)}`,
+          `ID penukaran voucher: ${voucherRedemptionId}`,
+        ]
+      : [`Harga: ${formatPrice(price.amount)}`]),
     "",
     "Terima kasih.",
   ].join("\n");
@@ -39,9 +54,18 @@ export function whatsappHref(
   scheduleLabel: string,
   price: PriceOption,
   voucherRedemptionId?: string,
+  voucherAmount?: number,
 ) {
   if (!WHATSAPP_NUMBER) return null;
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppMessage(destination, scheduleLabel, price, voucherRedemptionId))}`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    buildWhatsAppMessage(
+      destination,
+      scheduleLabel,
+      price,
+      voucherRedemptionId,
+      voucherAmount,
+    ),
+  )}`;
 }
 
 export function buildHighlightWhatsAppMessage(
@@ -74,7 +98,9 @@ export function highlightWhatsappHref(
   normalPrice: PriceOption,
 ) {
   if (!WHATSAPP_NUMBER) return null;
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildHighlightWhatsAppMessage(destination, highlight, normalPrice))}`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    buildHighlightWhatsAppMessage(destination, highlight, normalPrice),
+  )}`;
 }
 
 export { formatScheduleLabel };
