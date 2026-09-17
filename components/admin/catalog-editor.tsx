@@ -872,10 +872,7 @@ export function CatalogEditor({
                       }
                       onChange={(event) => {
                         const amount =
-                          Math.round(
-                            Number(event.target.value.replace(/\D/g, "")) /
-                              1000,
-                          ) * 1000;
+                          Number(event.target.value.replace(/\D/g, ""));
                         updateHighlight(highlight.id, (current) => ({
                           ...current,
                           discountAmount: amount,
@@ -1017,11 +1014,7 @@ export function CatalogEditor({
                             ? {
                                 ...item,
                                 amount:
-                                  Math.round(
-                                    Number(
-                                      event.target.value.replace(/\D/g, ""),
-                                    ) / 1000,
-                                  ) * 1000,
+                                  Number(event.target.value.replace(/\D/g, "")),
                               }
                             : item,
                         ),
