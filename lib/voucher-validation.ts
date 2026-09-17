@@ -9,7 +9,14 @@ export const voucherCodeSchema = z
 export const createVoucherSchema = z.object({
   code: voucherCodeSchema,
   destinationId: z.string().min(1).max(160),
-  amount: z.coerce.number().int().min(1_000).max(10_000_000),
+  amount: z.coerce
+    .number()
+    .int()
+    .min(5_000, "Potongan minimal Rp5.000.")
+    .max(200_000, "Potongan maksimal Rp200.000.")
+    .refine((value) => value % 5_000 === 0, {
+      message: "Potongan harus kelipatan Rp5.000.",
+    }),
   usageLimit: z.coerce.number().int().min(1).max(100_000),
 });
 
