@@ -1,0 +1,45 @@
+name: Make public pages dynamic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/make-public-pages-dynamic.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mark data-backed public pages dynamic
+        shell: python
+        run: |
+          from pathlib import Path
+          for filename in ['app/page.tsx', 'app/catalog/page.tsx']:
+              p = Path(filename)
+              s = p.read_text()
+              marker = 'export const dynamic = "force-dynamic";'
+              if marker in s:
+                  continue
+              lines = s.splitlines()
+              insert_at = 0
+              while insert_at < len(lines) and (lines[insert_at].startswith('import ') or lines[insert_at].strip() == ''):
+                  insert_at += 1
+              lines.insert(insert_at, '')
+              lines.insert(insert_at + 1, marker)
+              p.write_text('\n'.join(lines) + '\n')
+      - name: Typecheck
+        run: |
+          npm ci
+          npm run typecheck
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/make-public-pages-dynamic.yml
+          git add app/page.tsx app/catalog/page.tsx
+          git commit -m "fix: keep Supabase public pages dynamic at build time"
+          git push
