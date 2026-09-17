@@ -4,6 +4,7 @@ import { requireAdmin } from "@/services/auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { LogoutButton } from "@/components/admin/logout-button";
+import type { CatalogRecord } from "@/types/catalog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,7 +17,7 @@ export default async function AdminCatalogPage({
   const user = await requireAdmin();
   const params = await searchParams;
 
-  let records = [];
+  let records: CatalogRecord[] = [];
   let catalogError = "";
 
   try {
