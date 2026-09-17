@@ -1,0 +1,150 @@
+name: One-time highlight discount fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-highlight-scope.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch highlight discount behavior
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path_str, old, new):
+              path = Path(path_str)
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path_str}: expected 1 match, found {count} for {old!r}")
+              path.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "lib/catalog-utils.ts",
+              '''export function getDiscountedPriceAmount(
+            price: PriceOption,
+            offer: HighlightOffer,
+          ) {
+            if (offer.discountType === "percentage" && offer.discountValue) {
+              return roundRupiah(price.amount * (1 - offer.discountValue / 100));
+            }
+            if (offer.discountType === "fixed" && offer.discountValue) {
+              return Math.max(0, price.amount - offer.discountValue);
+            }
+            return price.id === offer.priceId ? offer.discountAmount : price.amount;
+          }''',
+              '''export function getDiscountedPriceAmount(
+            price: PriceOption,
+            offer: HighlightOffer,
+          ) {
+            // A homepage highlight is scoped to the single meeting point selected
+            // by the admin. Other meeting points keep their normal price.
+            if (price.id !== offer.priceId) return price.amount;
+            return Math.max(0, offer.discountAmount);
+          }''',
+          )
+
+          replace_once(
+              "lib/catalog-utils.ts",
+              '''export function appliesToAllDeparturePoints(offer: HighlightOffer) {
+            return Boolean(offer.discountType && offer.discountValue);
+          }''',
+              '''export function appliesToAllDeparturePoints(offer: HighlightOffer) {
+            void offer;
+            return false;
+          }''',
+          )
+
+          replace_once(
+              "components/catalog/trip-detail.tsx",
+              '"Discount active for every meeting point and available departure schedule."',
+              '"Discount applies only to the selected promo meeting point and departure schedule."',
+          )
+          replace_once(
+              "components/catalog/trip-detail.tsx",
+              '"Diskon aktif untuk semua titik keberangkatan dan jadwal keberangkatan tersedia."',
+              '"Diskon hanya berlaku untuk titik keberangkatan dan jadwal promo yang dipilih admin."',
+          )
+          replace_once(
+              "components/catalog/trip-detail.tsx",
+              '''const [selectedScheduleId, setSelectedScheduleId] = useState(
+            publishedSchedules[0]?.id ?? "",
+          );''',
+              '''const [selectedScheduleId, setSelectedScheduleId] = useState(
+            highlightOffer?.scheduleId ?? publishedSchedules[0]?.id ?? "",
+          );''',
+          )
+          replace_once(
+              "components/catalog/trip-detail.tsx",
+              'const isDiscountedPrice = Boolean(highlightOffer);',
+              'const isDiscountedPrice = Boolean(\n                    highlightOffer && price.id === highlightOffer.priceId,\n                  );',
+          )
+          replace_once(
+              "components/catalog/trip-detail.tsx",
+              '<span className="block text-primary-dark">',
+              '<span\n                              className={`block ${selected ? "text-white" : "text-primary-dark"}`}\n                            >',
+          )
+
+          replace_once(
+              "components/catalog/destination-card.tsx",
+              'allMeetingPoints: "Applies to all meeting points",',
+              'allMeetingPoints: "Selected promo meeting point",',
+          )
+          replace_once(
+              "components/catalog/destination-card.tsx",
+              'allSchedules: "all available schedules",',
+              'allSchedules: "selected promo schedule",',
+          )
+          replace_once(
+              "components/catalog/destination-card.tsx",
+              'allMeetingPoints: "Berlaku untuk semua titik keberangkatan",',
+              'allMeetingPoints: "Meeting point promo terpilih",',
+          )
+          replace_once(
+              "components/catalog/destination-card.tsx",
+              'allSchedules: "semua jadwal tersedia",',
+              'allSchedules: "jadwal promo terpilih",',
+          )
+
+          replace_once(
+              "components/admin/catalog-editor.tsx",
+              '''discountType: "fixed",
+                    discountValue: 50000,''',
+              '''discountType: undefined,
+                    discountValue: undefined,''',
+          )
+          replace_once(
+              "components/admin/catalog-editor.tsx",
+              '''discountAmount: amount,
+                        }));''',
+              '''discountAmount: amount,
+                          discountType: undefined,
+                          discountValue: undefined,
+                        }));''',
+          )
+
+      - name: Validate
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+
+      - name: Commit fix and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-highlight-scope.yml
+          git add lib/catalog-utils.ts components/catalog/trip-detail.tsx components/catalog/destination-card.tsx components/admin/catalog-editor.tsx
+          git commit -m "fix: scope promo discount to selected meeting point"
+          git push
