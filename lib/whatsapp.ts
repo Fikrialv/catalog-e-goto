@@ -41,7 +41,6 @@ export function buildWhatsAppMessage(
       ? [
           `Potongan voucher: ${formatPrice(voucherAmount!)}`,
           `Harga setelah voucher: ${formatPrice(price.amount)}`,
-          `ID penukaran voucher: ${voucherRedemptionId}`,
         ]
       : [`Harga: ${formatPrice(price.amount)}`]),
     "",
