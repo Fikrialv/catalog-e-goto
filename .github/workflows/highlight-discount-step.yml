@@ -14,12 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Patch highlight discount input and validation
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           editor = Path('components/admin/catalog-editor.tsx')
@@ -116,19 +113,22 @@ jobs:
           text = validation.read_text()
           old_value = '  discountValue: z.number().positive().optional(),'
           new_value = '''  discountValue: z
-    .number()
-    .int()
-    .min(5_000, "Potongan highlight minimal Rp5.000.")
-    .max(200_000, "Potongan highlight maksimal Rp200.000.")
-    .refine((value) => value % 5_000 === 0, {
-      message: "Potongan highlight harus kelipatan Rp5.000.",
-    })
-    .optional(),'''
+            .number()
+            .int()
+            .min(5_000, "Potongan highlight minimal Rp5.000.")
+            .max(200_000, "Potongan highlight maksimal Rp200.000.")
+            .refine((value) => value % 5_000 === 0, {
+              message: "Potongan highlight harus kelipatan Rp5.000.",
+            })
+            .optional(),'''
           if old_value not in text:
               raise SystemExit('discountValue schema not found')
           text = text.replace(old_value, new_value, 1)
 
           marker = '''      const path = ["highlights", index];
+              if (!normalPrice) {'''
+          if marker not in text:
+              marker = '''      const path = ["highlights", index];
       if (!normalPrice) {'''
           replacement = '''      const path = ["highlights", index];
       if (
@@ -150,13 +150,12 @@ jobs:
               raise SystemExit('highlight validation marker not found')
           text = text.replace(marker, replacement, 1)
           validation.write_text(text)
-
+          PY
       - name: Validate
         run: |
           npm ci
           npm run typecheck
           npm run lint
-
       - name: Commit verified change
         run: |
           git config user.name "github-actions[bot]"
