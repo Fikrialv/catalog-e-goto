@@ -845,12 +845,28 @@ export function CatalogEditor({
                     <span>Meeting point / harga normal</span>
                     <select
                       value={highlight.priceId}
-                      onChange={(event) =>
-                        updateHighlight(highlight.id, (current) => ({
-                          ...current,
-                          priceId: event.target.value,
-                        }))
-                      }
+                      onChange={(event) => {
+                        const nextPriceId = event.target.value;
+                        const nextPrice = payload.prices.find(
+                          (price) => price.id === nextPriceId,
+                        );
+                        updateHighlight(highlight.id, (current) => {
+                          const cut = Math.min(
+                            200000,
+                            Math.max(5000, current.discountValue ?? 50000),
+                          );
+                          return {
+                            ...current,
+                            priceId: nextPriceId,
+                            discountType: "fixed",
+                            discountValue: cut,
+                            discountAmount: Math.max(
+                              0,
+                              (nextPrice?.amount ?? 0) - cut,
+                            ),
+                          };
+                        });
+                      }}
                       className={inputClass}
                     >
                       {payload.prices.map((price) => (
@@ -862,24 +878,34 @@ export function CatalogEditor({
                     </select>
                   </label>
                   <label className="grid gap-2 text-sm font-semibold text-ink">
-                    <span>Harga discount (Rp)</span>
-                    <input
-                      inputMode="numeric"
-                      value={
-                        highlight.discountAmount
-                          ? `Rp ${highlight.discountAmount.toLocaleString("id-ID")}`
-                          : ""
-                      }
+                    <span>Potongan discount (Rp)</span>
+                    <select
+                      value={String(highlight.discountValue ?? 50000)}
                       onChange={(event) => {
-                        const amount =
-                          Number(event.target.value.replace(/\D/g, ""));
+                        const cut = Number(event.target.value);
+                        const normalPrice = payload.prices.find(
+                          (price) => price.id === highlight.priceId,
+                        );
                         updateHighlight(highlight.id, (current) => ({
                           ...current,
-                          discountAmount: amount,
+                          discountType: "fixed",
+                          discountValue: cut,
+                          discountAmount: Math.max(
+                            0,
+                            (normalPrice?.amount ?? 0) - cut,
+                          ),
                         }));
                       }}
                       className={`${inputClass} tabular-nums`}
-                    />
+                    >
+                      {Array.from({ length: 40 }, (_, index) =>
+                        (index + 1) * 5000,
+                      ).map((value) => (
+                        <option key={value} value={value}>
+                          Rp {value.toLocaleString("id-ID")}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </div>
               </div>

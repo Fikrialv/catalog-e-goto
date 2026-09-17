@@ -62,7 +62,15 @@ const highlight = z.object({
     .int()
     .positive("Harga discount harus lebih besar dari 0."),
   discountType: z.enum(["fixed", "percentage"]).optional(),
-  discountValue: z.number().positive().optional(),
+  discountValue: z
+    .number()
+    .int()
+    .min(5_000, "Potongan highlight minimal Rp5.000.")
+    .max(200_000, "Potongan highlight maksimal Rp200.000.")
+    .refine((value) => value % 5_000 === 0, {
+      message: "Potongan highlight harus kelipatan Rp5.000.",
+    })
+    .optional(),
 });
 
 export const destinationPayloadSchema = z
@@ -123,6 +131,20 @@ export const destinationPayloadSchema = z
         (price) => price.id === offer.priceId,
       );
       const path = ["highlights", index];
+      if (
+        offer.discountType !== "fixed" ||
+        !offer.discountValue ||
+        offer.discountValue < 5_000 ||
+        offer.discountValue > 200_000 ||
+        offer.discountValue % 5_000 !== 0
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: [...path, "discountValue"],
+          message:
+            "Potongan highlight harus Rp5.000–Rp200.000 dan kelipatan Rp5.000.",
+        });
+      }
       if (!normalPrice) {
         context.addIssue({
           code: "custom",
