@@ -111,7 +111,9 @@ export const destinationPayloadSchema = z
     description: z.string().trim(),
     coverImage: image,
     gallery: z.array(image),
-    prices: z.array(price).min(1, "Minimal satu price option."),
+    // Draft destinations may be incomplete while an admin is still entering package details.
+    // Publication is blocked below until at least one valid price option exists.
+    prices: z.array(price),
     schedules: z.array(schedule),
     includes: z.array(z.string().trim().min(1)),
     excludes: z.array(z.string().trim().min(1)),
@@ -124,6 +126,14 @@ export const destinationPayloadSchema = z
     publishedVersion: z.number().int().nonnegative().optional(),
   })
   .superRefine((value, context) => {
+    if (value.publicationStatus === "published" && value.prices.length < 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["prices"],
+        message: "Minimal satu price option wajib diisi sebelum destinasi dipublikasikan.",
+      });
+    }
+
     const keys = new Set<string>();
     for (const item of value.schedules) {
       if (item.endDate && item.endDate < item.startDate) {
