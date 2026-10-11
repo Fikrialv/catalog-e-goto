@@ -10,9 +10,11 @@ This branch prepares a **separate Cloudflare Workers deployment** for the existi
 4. Run `npm run preview:cloudflare` and test the app in the local Workers runtime.
 5. Authenticate the Cloudflare CLI with `npx wrangler login`.
 
-## Cloudflare environment variables
+## Environment variables
 
-Configure these in the Cloudflare Worker dashboard under Settings → Variables and Secrets. Use the same names as `.env.example` and the values for the production environment:
+Next.js inlines `NEXT_PUBLIC_*` variables into client bundles at build time. Because this branch uses local CLI deployment, create an untracked `.env.production` file locally with the production values from `.env.example` before building. Do not commit this file. Also configure runtime variables and secrets in the Cloudflare Worker dashboard under Settings → Variables and Secrets.
+
+Required names:
 
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
@@ -26,7 +28,7 @@ Configure these in the Cloudflare Worker dashboard under Settings → Variables 
 - `E_GOTO_ADMIN_EMAIL`
 - `VOUCHER_HASH_SECRET` (server-side secret; never expose it with a `NEXT_PUBLIC_` prefix)
 
-Never commit production secrets or a populated `.dev.vars` file. Public Supabase keys are intended for client use but must still be protected by correct Supabase RLS policies.
+Set the server-only variables in Cloudflare as well, especially `VOUCHER_HASH_SECRET`. Never commit production secrets or a populated `.dev.vars` file. Public Supabase keys are intended for client use but must still be protected by correct Supabase RLS policies.
 
 ## Build and deploy manually
 
@@ -36,7 +38,7 @@ After environment variables are configured and local checks pass:
 npm run deploy:cloudflare
 ```
 
-This command builds the app and deploys it to the Worker named `e-goto-catalog-cloudflare`. The command requires your Cloudflare CLI to be authenticated.
+This command builds the app and deploys it to the Worker named `e-goto-catalog-cloudflare`. The command requires your Cloudflare CLI to be authenticated. You control when this deployment runs; no deployment is triggered by this setup change.
 
 ## Verification checklist
 
