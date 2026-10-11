@@ -128,7 +128,7 @@ describe("catalog safety helpers", () => {
     expect(() => destinationPayloadSchema.parse(invalid)).toThrow();
   });
 
-  it("rejects a departure that crosses catalog months", () => {
+  it("allows a departure that crosses catalog months", () => {
     const destination = clone(destinations[3]);
     destination.schedules[0] = {
       ...destination.schedules[0],
@@ -136,9 +136,10 @@ describe("catalog safety helpers", () => {
       endDate: "2026-11-02",
     };
 
-    expect(() => destinationPayloadSchema.parse(destination)).toThrow(
-      "Jadwal katalog wajib berada dalam satu bulan.",
-    );
+    expect(destinationPayloadSchema.parse(destination).schedules[0]).toMatchObject({
+      startDate: "2026-10-31",
+      endDate: "2026-11-02",
+    });
   });
 
   it("returns human-readable changed fields", () => {
