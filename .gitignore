@@ -1,9 +1,13 @@
 node_modules/
 .next/
+.open-next/
+.wrangler/
 out/
 *.tsbuildinfo
 .env*
 !.env.example
+.dev.vars
+cloudflare-env.d.ts
 supabase/.temp/
 public/uploads/
 runtime/uploads/
