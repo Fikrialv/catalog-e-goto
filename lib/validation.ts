@@ -133,16 +133,6 @@ export const destinationPayloadSchema = z
           message: "End date tidak boleh sebelum start date.",
         });
       }
-      if (
-        item.endDate &&
-        item.endDate.slice(0, 7) !== item.startDate.slice(0, 7)
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["schedules"],
-          message: "Jadwal katalog wajib berada dalam satu bulan.",
-        });
-      }
       const key = `${item.startDate}:${item.endDate ?? ""}`;
       if (keys.has(key)) {
         context.addIssue({
