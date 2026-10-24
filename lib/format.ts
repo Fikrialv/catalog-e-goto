@@ -47,9 +47,16 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
 export function formatScheduleCompact(schedule: DepartureSchedule) {
   const start = idDate(schedule.startDate);
   const end = schedule.endDate ? idDate(schedule.endDate) : null;
-  return end
-    ? `${start.getUTCDate()}–${end.getUTCDate()}`
-    : `${start.getUTCDate()}`;
+  if (!end) return `${start.getUTCDate()}`;
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    const yearMonth = new Intl.DateTimeFormat("id-ID", { month: "short", year: "numeric", timeZone: "UTC" });
+    return `${start.getUTCDate()} ${yearMonth.format(start)} – ${end.getUTCDate()} ${yearMonth.format(end)}`;
+  }
+  if (start.getUTCMonth() !== end.getUTCMonth()) {
+    const month = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: "UTC" });
+    return `${start.getUTCDate()} ${month.format(start)} – ${end.getUTCDate()} ${month.format(end)}`;
+  }
+  return `${start.getUTCDate()}–${end.getUTCDate()}`;
 }
 
 export function categoryLabel(category: Category) {
