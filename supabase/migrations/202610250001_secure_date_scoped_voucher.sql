@@ -105,11 +105,12 @@ BEGIN
     amount, final_amount
   ) VALUES (
     next_id, p_voucher_id, p_destination_id, p_session_id, p_price_id,
-    p_schedule_id, voucher_row.amount,
+    p_schedule_id, LEAST(voucher_row.amount, promo_amount),
     GREATEST(0, promo_amount - voucher_row.amount)
   );
 
-  RETURN QUERY SELECT next_id, p_voucher_id, voucher_row.amount,
+  RETURN QUERY SELECT next_id, p_voucher_id,
+    LEAST(voucher_row.amount, promo_amount),
     GREATEST(0, promo_amount - voucher_row.amount);
 END;
 $$;
