@@ -45,29 +45,27 @@ export function DestinationCard({
   const priceFrom = Math.min(
     ...destination.prices.map((price) => price.amount),
   );
-  const highlight = destination.schedules[0]
-    ? (getMonthlyHighlights(
+  const monthPromos = destination.schedules[0]
+    ? getMonthlyHighlights(
         destination,
         monthKeyFromDate(destination.schedules[0].startDate),
-      )[0] ?? null)
+      )
+    : [];
+  const highlight = monthPromos.find((offer) =>
+    destination.schedules.some((schedule) =>
+      schedule.id === offer.scheduleId &&
+      schedule.publicationStatus === "published" &&
+      schedule.availabilityStatus === "available",
+    )
+  ) ?? null;
+  const highlightedSchedule = highlight
+    ? destination.schedules.find((schedule) => schedule.id === highlight.scheduleId)
     : null;
   const highlightPrice = highlight
     ? (destination.prices.find((price) => price.id === highlight.priceId) ??
       destination.prices[0])
     : null;
-  const highlightHref =
-    highlight && highlightPrice
-      ? whatsappHref(
-          destination,
-          language === "en"
-            ? "All available schedules"
-            : "Semua jadwal tersedia",
-          {
-            ...highlightPrice,
-            amount: getDiscountedPriceAmount(highlightPrice, highlight),
-          },
-        )
-      : null;
+  const highlightHref = null; // Customers choose the exact departure before WhatsApp inquiry.
   const detailHref = `/catalog/${destination.slug}${highlight ? `?highlight=${highlight.id}` : ""}`;
 
   return (
@@ -116,7 +114,7 @@ export function DestinationCard({
               </span>
             </div>
             <p className="mt-3 text-xs font-semibold text-ink-muted">
-              {copy.allMeetingPoints} · {copy.allSchedules} ·{" "}
+              {highlightedSchedule ? new Date(`${highlightedSchedule.startDate}T00:00:00Z`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : ""} ·{" "}
               {destination.itinerary.length} {copy.itinerary}
             </p>
             <div className="mt-3 flex flex-wrap items-baseline gap-2">

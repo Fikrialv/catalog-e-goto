@@ -3,6 +3,7 @@
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { whatsappHref, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { formatScheduleLabel } from "@/lib/format";
+import type { TripPriceBreakdown } from "@/lib/pricing";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 import { useCustomerPreferences } from "@/components/site/customer-preferences";
 import type {
@@ -17,12 +18,14 @@ export function WhatsAppButton({
   price,
   voucherRedemptionId,
   voucherAmount,
+  breakdown,
 }: {
   destination: TripDestination;
   schedule: DepartureSchedule | undefined;
   price: PriceOption;
   voucherRedemptionId?: string;
   voucherAmount?: number;
+  breakdown?: TripPriceBreakdown;
 }) {
   const { language } = useCustomerPreferences();
   const copy =
@@ -48,6 +51,7 @@ export function WhatsAppButton({
     price,
     voucherRedemptionId,
     voucherAmount,
+    breakdown,
   );
 
   if (!WHATSAPP_NUMBER || !href) {
