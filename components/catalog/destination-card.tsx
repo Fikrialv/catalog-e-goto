@@ -6,7 +6,6 @@ import { ArrowUpRight } from "lucide-react";
 import { categoryLabel } from "@/lib/format";
 import type { TripDestination } from "@/types/catalog";
 import { ScheduleChips } from "@/components/catalog/schedule-chips";
-import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 
 import {
   getDiscountedPriceAmount,

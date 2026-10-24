@@ -466,7 +466,7 @@ export function CatalogEditor({
   // Keep old Storage objects: a published snapshot may still reference them.
   // Garbage collection must happen only after both draft and published snapshots
   // have been checked for remaining references.
-  function queueStorageDelete(_src: string) {
+  function queueStorageDelete() {
     // Intentionally no physical deletion when only a draft image is changed.
   }
 
@@ -559,7 +559,7 @@ export function CatalogEditor({
       if (!response.ok || typeof result.src !== "string") {
         throw new Error(result.error ?? "Upload gagal.");
       }
-      if (currentSrc && currentSrc !== result.src) queueStorageDelete(currentSrc);
+      if (currentSrc && currentSrc !== result.src) queueStorageDelete();
       if (target === "cover") {
         setField("coverImage", { ...payload.coverImage, src: result.src });
       } else {
@@ -662,7 +662,7 @@ export function CatalogEditor({
   }
 
   function removeGalleryImage(index: number) {
-    queueStorageDelete(payload.gallery[index]?.src ?? "");
+    queueStorageDelete();
     updatePayload((current) => ({
       ...current,
       gallery: ordered(removeItem(current.gallery, index)),
