@@ -57,11 +57,11 @@ function movePlain<T>(items: T[], index: number, direction: -1 | 1) {
   return next;
 }
 
-function getScheduleMonthTabs(schedules: TripDestination["schedules"]) {
+function getScheduleMonthTabs(schedules: TripDestination["schedules"], selectedMonth: string) {
   const scheduleMonths = schedules.map((schedule) =>
     monthKeyFromDate(schedule.startDate),
   );
-  const keys = [...new Set([...scheduleMonths.filter(Boolean)])].sort();
+  const keys = [...new Set([...scheduleMonths.filter(Boolean), selectedMonth].filter(Boolean))].sort();
   return keys.map((key) => ({ key, label: formatMonthLabel(key) }));
 }
 
@@ -401,8 +401,8 @@ export function CatalogEditor({
     [payload, record.published],
   );
   const scheduleMonthTabs = useMemo(
-    () => getScheduleMonthTabs(payload.schedules),
-    [payload.schedules],
+    () => getScheduleMonthTabs(payload.schedules, selectedScheduleMonth),
+    [payload.schedules, selectedScheduleMonth],
   );
   const activeScheduleMonth = scheduleMonthTabs.some(
     (month) => month.key === selectedScheduleMonth,
@@ -1128,7 +1128,7 @@ export function CatalogEditor({
                     label="Mulai"
                     required
                     value={schedule.startDate}
-                    onChange={(value) =>
+                    onChange={(value) => {
                       updatePayload((current) => ({
                         ...current,
                         schedules: current.schedules.map((item, itemIndex) =>
@@ -1136,8 +1136,9 @@ export function CatalogEditor({
                             ? { ...item, startDate: value }
                             : item,
                         ),
-                      }))
-                    }
+                      }));
+                      if (value) setSelectedScheduleMonth(monthKeyFromDate(value));
+                    }}
                   />
                   <CalendarInput
                     label="Selesai (opsional)"
