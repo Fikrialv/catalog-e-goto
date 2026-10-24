@@ -145,6 +145,7 @@ describe("catalog safety helpers", () => {
 
   it("accepts a departure that crosses December into January", () => {
     const destination = clone(destinations[3]);
+    destination.highlights = [];
     destination.schedules[0] = {
       ...destination.schedules[0],
       startDate: "2026-12-31",
