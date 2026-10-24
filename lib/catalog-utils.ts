@@ -176,7 +176,7 @@ export function nextUnusedScheduleDate(
   monthKey: string,
   startAfter?: string,
 ): string | null {
-  if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) return null;
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) return null;
   const [year, month] = monthKey.split("-").map(Number);
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const taken = new Set(schedules.map((schedule) => schedule.startDate));
