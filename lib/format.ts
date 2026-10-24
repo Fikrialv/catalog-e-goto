@@ -14,6 +14,7 @@ export function formatMonthLabel(monthKey: string) {
   return new Intl.DateTimeFormat("id-ID", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(idDate(`${monthKey}-01`));
 }
 
@@ -22,6 +23,7 @@ export function formatDateLabel(date: string) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(idDate(date));
 }
 
@@ -32,6 +34,7 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
 
   if (!end) return formatter.format(start);
@@ -39,7 +42,7 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
     start.getUTCMonth() === end.getUTCMonth() &&
     start.getUTCFullYear() === end.getUTCFullYear()
   ) {
-    return `${start.getUTCDate()}–${end.getUTCDate()} ${new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(start)}`;
+    return `${start.getUTCDate()}–${end.getUTCDate()} ${new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" }).format(start)}`;
   }
   return `${formatter.format(start)} – ${formatter.format(end)}`;
 }
