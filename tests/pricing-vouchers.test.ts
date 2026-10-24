@@ -85,6 +85,13 @@ describe("date scoped promotion and voucher pricing", () => {
     expect(message).toContain("10–11 Oktober 2026");
   });
 
+  it("never applies a voucher amount larger than the selected post-promo price", () => {
+    const trip = fixture();
+    const result = getTripPriceBreakdown(trip, "oct-10", trip.prices[0].id, 99999999);
+    expect(result.finalPrice).toBe(0);
+    expect(result.voucherDiscount).toBe(result.afterPromotion);
+  });
+
   it("requires a selected schedule when redeeming a voucher", () => {
     const input = {
       code: "EGOTO-TEST",
@@ -104,6 +111,17 @@ describe("real calendar date validation", () => {
     trip.schedules[0].startDate = "2026-02-30";
     expect(() => parseDestinationPayload(trip)).toThrow();
     trip.schedules[0].startDate = "2027-02-29";
+    expect(() => parseDestinationPayload(trip)).toThrow();
+  });
+
+  it("requires at least one published departure before publication", () => {
+    const trip = fixture();
+    trip.highlights = [];
+    trip.publicationStatus = "published";
+    trip.schedules = trip.schedules.map((schedule) => ({
+      ...schedule,
+      publicationStatus: "draft",
+    }));
     expect(() => parseDestinationPayload(trip)).toThrow();
   });
 

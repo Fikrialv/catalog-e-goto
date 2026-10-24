@@ -393,9 +393,6 @@ export function CatalogEditor({
   const [uploadingImage, setUploadingImage] = useState<"cover" | number | null>(
     null,
   );
-  const [pendingStorageDeletes, setPendingStorageDeletes] = useState<string[]>(
-    [],
-  );
   const summary = useMemo(
     () => createChangeSummary(record.published, payload),
     [payload, record.published],
@@ -466,93 +463,78 @@ export function CatalogEditor({
     }));
   }
 
-  function queueStorageDelete(src: string) {
-    if (!src.includes("/storage/v1/object/public/")) return;
-    setPendingStorageDeletes((current) =>
-      current.includes(src) ? current : [...current, src],
-    );
-  }
-
-  async function flushStorageDeletes() {
-    if (!pendingStorageDeletes.length) return 0;
-    const results = await Promise.all(
-      pendingStorageDeletes.map(async (src) => {
-        try {
-          const response = await fetch("/api/admin/upload", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ src, destinationId: payload.id }),
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      }),
-    );
-    const failed = pendingStorageDeletes.filter((_, index) => !results[index]);
-    setPendingStorageDeletes(failed);
-    return failed.length;
+  // Keep old Storage objects: a published snapshot may still reference them.
+  // Garbage collection must happen only after both draft and published snapshots
+  // have been checked for remaining references.
+  function queueStorageDelete(_src: string) {
+    // Intentionally no physical deletion when only a draft image is changed.
   }
 
   async function saveDraft(event?: FormEvent) {
     event?.preventDefault();
+    if (saving || uploadingImage !== null) return;
     setSaving(true);
     setError("");
     setNotice("");
-    const response = await fetch(
-      isNew ? "/api/admin/catalog" : `/api/admin/catalog/${record.id}`,
-      {
-        method: isNew ? "POST" : "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          isNew
-            ? { action: "create", payload }
-            : { action: "save-draft", payload },
-        ),
-      },
-    );
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(result.error ?? "Draft gagal disimpan.");
+    try {
+      const response = await fetch(
+        isNew ? "/api/admin/catalog" : `/api/admin/catalog/${record.id}`,
+        {
+          method: isNew ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isNew ? { action: "create", payload } : { action: "save-draft", payload },
+          ),
+        },
+      );
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Draft gagal disimpan.");
+      setDirty(false);
+      setNotice("Draft tersimpan. Public belum berubah sampai Publish.");
+      if (isNew && result.record?.id) {
+        router.replace(`/admin/catalog/${result.record.id}/edit`);
+      } else {
+        router.refresh();
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Draft gagal disimpan. Coba ulang.");
+    } finally {
       setSaving(false);
-      return;
     }
-    const failedDeleteCount = await flushStorageDeletes();
-    setDirty(false);
-    setNotice(
-      failedDeleteCount
-        ? `Draft tersimpan, tetapi ${failedDeleteCount} asset lama belum terhapus dari storage.`
-        : "Draft tersimpan. Public belum berubah sampai Publish.",
-    );
-    setSaving(false);
-    if (isNew && result.record?.id)
-      router.replace(`/admin/catalog/${result.record.id}/edit`);
-    else router.refresh();
   }
 
   async function runAction(action: string) {
-    if (
-      ["publish", "unpublish", "archive", "restore", "duplicate"].includes(
-        action,
-      ) &&
-      !window.confirm(`Konfirmasi aksi ${action}?`)
-    )
+    if (saving || uploadingImage !== null) return;
+    if (dirty) {
+      setError("Ada perubahan belum disimpan. Klik Save draft, lalu ulangi aksi.");
       return;
+    }
+    if (action === "publish" &&
+        !payload.schedules.some((schedule) => schedule.publicationStatus === "published")) {
+      setError("Pilih minimal satu jadwal berstatus published sebelum Publish.");
+      return;
+    }
+    if (
+      ["publish", "unpublish", "archive", "restore", "duplicate"].includes(action) &&
+      !window.confirm(`Konfirmasi aksi ${action}?`)
+    ) return;
     setSaving(true);
     setError("");
-    const response = await fetch(`/api/admin/catalog/${record.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload, confirmed: true }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) setError(result.error ?? "Aksi gagal.");
-    else {
+    try {
+      const response = await fetch(`/api/admin/catalog/${record.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, confirmed: true }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Aksi gagal.");
       setNotice(result.message ?? "Aksi berhasil.");
-      setDirty(false);
       router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Aksi gagal. Coba ulang.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function uploadImage(
@@ -560,38 +542,39 @@ export function CatalogEditor({
     target: "cover" | { galleryIndex: number },
   ) {
     if (!file) return;
-    const currentSrc =
-      target === "cover"
-        ? payload.coverImage.src
-        : payload.gallery[target.galleryIndex]?.src;
+    const currentSrc = target === "cover"
+      ? payload.coverImage.src
+      : payload.gallery[target.galleryIndex]?.src;
     setUploadingImage(target === "cover" ? "cover" : target.galleryIndex);
     setError("");
-    const formData = new FormData();
-    formData.set("file", file);
-    formData.set("destinationId", payload.id);
-    const response = await fetch("/api/admin/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) setError(result.error ?? "Upload gagal.");
-    else {
-      if (currentSrc && currentSrc !== result.src)
-        queueStorageDelete(currentSrc);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("destinationId", payload.id);
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || typeof result.src !== "string") {
+        throw new Error(result.error ?? "Upload gagal.");
+      }
+      if (currentSrc && currentSrc !== result.src) queueStorageDelete(currentSrc);
       if (target === "cover") {
         setField("coverImage", { ...payload.coverImage, src: result.src });
       } else {
         updatePayload((current) => ({
           ...current,
           gallery: current.gallery.map((image, index) =>
-            index === target.galleryIndex
-              ? { ...image, src: result.src }
-              : image,
+            index === target.galleryIndex ? { ...image, src: result.src } : image,
           ),
         }));
       }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Upload gagal. Coba ulang.");
+    } finally {
+      setUploadingImage(null);
     }
-    setUploadingImage(null);
   }
 
   function addPrice() {
@@ -647,6 +630,13 @@ export function CatalogEditor({
     }));
   }
   function addSchedule() {
+    if (payload.schedules.filter((schedule) =>
+      schedule.startDate.startsWith(activeScheduleMonth)).length >=
+      new Date(Date.UTC(Number(activeScheduleMonth.slice(0, 4)), Number(activeScheduleMonth.slice(5, 7)), 0)).getUTCDate()
+    ) {
+      setError("Semua tanggal pada bulan ini sudah digunakan. Pilih bulan lain.");
+      return;
+    }
     updatePayload((current) => ({
       ...current,
       schedules: [
@@ -654,7 +644,17 @@ export function CatalogEditor({
         {
           id: `${current.id}-schedule-${Date.now()}`,
           destinationId: current.id,
-          startDate: `${activeScheduleMonth}-01`,
+          startDate: (() => {
+            const occupied = new Set(current.schedules.map((schedule) => schedule.startDate));
+            const year = Number(activeScheduleMonth.slice(0, 4));
+            const month = Number(activeScheduleMonth.slice(5, 7));
+            const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+            for (let day = 1; day <= lastDay; day++) {
+              const candidate = `${activeScheduleMonth}-${String(day).padStart(2, "0")}`;
+              if (!occupied.has(candidate)) return candidate;
+            }
+            return "";
+          })(),
           endDate: null,
           publicationStatus: "draft",
           availabilityStatus: "available",
@@ -1240,6 +1240,8 @@ export function CatalogEditor({
                             {
                               ...current.schedules[index],
                               id: `${current.id}-schedule-${Date.now()}`,
+                              startDate: "",
+                              endDate: null,
                               publicationStatus: "draft",
                             },
                             ...current.schedules.slice(index + 1),
@@ -1624,7 +1626,7 @@ export function CatalogEditor({
             </p>
           ) : null}
           <button
-            disabled={saving}
+            disabled={saving || uploadingImage !== null}
             className="mt-6 min-h-12 w-full rounded-full bg-ink px-5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {saving ? "Menyimpan…" : "Save draft"}
@@ -1639,6 +1641,7 @@ export function CatalogEditor({
               </Link>
               <button
                 type="button"
+                disabled={saving || dirty || uploadingImage !== null}
                 onClick={() => runAction("publish")}
                 className="min-h-11 rounded-full bg-accent px-5 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >

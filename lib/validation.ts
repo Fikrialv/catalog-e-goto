@@ -139,6 +139,14 @@ export const destinationPayloadSchema = z
       });
     }
 
+    if (value.publicationStatus === "published" &&
+        !value.schedules.some((schedule) => schedule.publicationStatus === "published")) {
+      context.addIssue({
+        code: "custom",
+        path: ["schedules"],
+        message: "Minimal satu jadwal berstatus published wajib dipilih.",
+      });
+    }
     const keys = new Set<string>();
     for (const item of value.schedules) {
       if (item.endDate && item.endDate < item.startDate) {

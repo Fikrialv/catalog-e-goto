@@ -7,7 +7,7 @@ import {
   formatPrice,
   formatScheduleLabel,
 } from "@/lib/format";
-import { getHighlightSchedule, getDiscountedPriceAmount } from "@/lib/catalog-utils";
+import { getHighlightSchedule } from "@/lib/catalog-utils";
 import { getTripPriceBreakdown, type TripPriceBreakdown } from "@/lib/pricing";
 
 export const WHATSAPP_NUMBER =

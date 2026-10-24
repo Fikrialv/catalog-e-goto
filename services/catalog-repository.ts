@@ -257,6 +257,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
   async publish(id: string, userId: string) {
     const record = await this.row(id);
     if (!record) throw new Error("Destination tidak ditemukan.");
+    if (!record.draft.schedules.some(
+      (schedule) => schedule.publicationStatus === "published",
+    )) {
+      throw new Error("Minimal satu jadwal berstatus published wajib dipilih sebelum Publish.");
+    }
+    if (!record.draft.prices.length) {
+      throw new Error("Minimal satu harga wajib diisi sebelum Publish.");
+    }
     const publishedAt = nowIso();
     const published = normalizeDestination(record.draft, "published");
     published.publishedAt = publishedAt;

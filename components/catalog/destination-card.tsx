@@ -7,7 +7,7 @@ import { categoryLabel } from "@/lib/format";
 import type { TripDestination } from "@/types/catalog";
 import { ScheduleChips } from "@/components/catalog/schedule-chips";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
-import { whatsappHref, WHATSAPP_NUMBER } from "@/lib/whatsapp";
+
 import {
   getDiscountedPriceAmount,
   getMonthlyHighlights,
@@ -65,7 +65,6 @@ export function DestinationCard({
     ? (destination.prices.find((price) => price.id === highlight.priceId) ??
       destination.prices[0])
     : null;
-  const highlightHref = null; // Customers choose the exact departure before WhatsApp inquiry.
   const detailHref = `/catalog/${destination.slug}${highlight ? `?highlight=${highlight.id}` : ""}`;
 
   return (
@@ -164,25 +163,7 @@ export function DestinationCard({
               aria-hidden="true"
             />
           </Link>
-          {highlightHref && WHATSAPP_NUMBER ? (
-            <a
-              href={highlightHref}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() =>
-                trackCatalogEvent(
-                  "whatsapp_cta_clicked",
-                  destination.slug,
-                  highlightPrice?.id,
-                )
-              }
-              className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#16804b] px-4 text-sm font-semibold text-white transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[#117441] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16804b]"
-            >
-              {language === "en"
-                ? "Ask about offer via WhatsApp"
-                : "Tanya promo via WhatsApp"}
-            </a>
-          ) : null}
+
         </div>
       </div>
     </article>
