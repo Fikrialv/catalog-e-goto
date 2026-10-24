@@ -19,6 +19,7 @@ import {
   createChangeSummary,
   normalizeDestination,
   nowIso,
+  slugForDraftSave,
 } from "@/lib/catalog-utils";
 import { parseDestinationPayload } from "@/lib/validation";
 
@@ -236,7 +237,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       .update({
         draft_payload: parsed,
         draft_version: draftVersion,
-        slug: parsed.slug,
+        slug: slugForDraftSave(record.status, record.slug, parsed.slug),
         updated_at: nowIso(),
       })
       .eq("id", id)
@@ -273,6 +274,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       .from("catalog_documents")
       .update({
         publication_status: "published",
+        slug: published.slug,
         published_payload: published,
         published_version: record.draftVersion,
         published_at: publishedAt,

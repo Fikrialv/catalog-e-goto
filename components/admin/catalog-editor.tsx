@@ -12,7 +12,7 @@ import type {
   PublicationStatus,
   TripDestination,
 } from "@/types/catalog";
-import { createChangeSummary, clone } from "@/lib/catalog-utils";
+import { createChangeSummary, clone, moveScheduleEndDate, nextUnusedScheduleDate } from "@/lib/catalog-utils";
 import { monthKeyFromDate } from "@/lib/catalog-utils";
 import { formatMonthLabel } from "@/lib/format";
 
@@ -630,11 +630,9 @@ export function CatalogEditor({
     }));
   }
   function addSchedule() {
-    if (payload.schedules.filter((schedule) =>
-      schedule.startDate.startsWith(activeScheduleMonth)).length >=
-      new Date(Date.UTC(Number(activeScheduleMonth.slice(0, 4)), Number(activeScheduleMonth.slice(5, 7)), 0)).getUTCDate()
-    ) {
-      setError("Semua tanggal pada bulan ini sudah digunakan. Pilih bulan lain.");
+    const nextDate = nextUnusedScheduleDate(payload.schedules, activeScheduleMonth);
+    if (!nextDate) {
+      setError("Tidak ada tanggal kosong pada bulan ini. Pilih bulan lainnya.");
       return;
     }
     updatePayload((current) => ({
@@ -642,19 +640,9 @@ export function CatalogEditor({
       schedules: [
         ...current.schedules,
         {
-          id: `${current.id}-schedule-${Date.now()}`,
+          id: `${current.id}-schedule-${crypto.randomUUID()}`,
           destinationId: current.id,
-          startDate: (() => {
-            const occupied = new Set(current.schedules.map((schedule) => schedule.startDate));
-            const year = Number(activeScheduleMonth.slice(0, 4));
-            const month = Number(activeScheduleMonth.slice(5, 7));
-            const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-            for (let day = 1; day <= lastDay; day++) {
-              const candidate = `${activeScheduleMonth}-${String(day).padStart(2, "0")}`;
-              if (!occupied.has(candidate)) return candidate;
-            }
-            return "";
-          })(),
+          startDate: nextDate,
           endDate: null,
           publicationStatus: "draft",
           availabilityStatus: "available",
@@ -1232,21 +1220,30 @@ export function CatalogEditor({
                     <button
                       type="button"
                       className={smallButtonClass}
-                      onClick={() =>
+                      onClick={() => {
+                        const date = nextUnusedScheduleDate(
+                          payload.schedules,
+                          monthKeyFromDate(schedule.startDate),
+                          schedule.startDate,
+                        );
+                        if (!date) {
+                          setError("Bulan ini penuh. Pilih bulan lain untuk jadwal baru.");
+                          return;
+                        }
                         updatePayload((current) => ({
                           ...current,
                           schedules: [
                             ...current.schedules.slice(0, index + 1),
                             {
                               ...current.schedules[index],
-                              id: `${current.id}-schedule-${Date.now()}`,
-                              startDate: "",
-                              endDate: null,
+                              id: `${current.id}-schedule-${crypto.randomUUID()}`,
+                              startDate: date,
+                              endDate: moveScheduleEndDate(schedule.startDate, schedule.endDate, date),
                               publicationStatus: "draft",
                             },
                             ...current.schedules.slice(index + 1),
                           ],
-                        }))
+                        }));
                       }
                     >
                       <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
