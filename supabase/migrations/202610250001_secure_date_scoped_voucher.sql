@@ -4,7 +4,7 @@
 ALTER TABLE public.voucher_redemptions
   ADD COLUMN IF NOT EXISTS schedule_id text;
 
-CREATE OR REPLACE FUNCTION public.redeem_catalog_voucher(
+CREATE OR REPLACE FUNCTION public.redeem_catalog_voucher_for_schedule(
   p_voucher_id text,
   p_destination_id text,
   p_session_id uuid,
@@ -114,9 +114,9 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.redeem_catalog_voucher(text,text,uuid,text,text)
+REVOKE ALL ON FUNCTION public.redeem_catalog_voucher_for_schedule(text,text,uuid,text,text)
   FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.redeem_catalog_voucher(text,text,uuid,text,text)
+GRANT EXECUTE ON FUNCTION public.redeem_catalog_voucher_for_schedule(text,text,uuid,text,text)
   TO anon, authenticated;
 
 -- Retire the old client-trusted base-amount RPC entry point.

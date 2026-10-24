@@ -101,7 +101,7 @@ export async function redeemVoucher(input: {
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
 
-  const { data, error } = await supabase.rpc("redeem_catalog_voucher", {
+  const { data, error } = await supabase.rpc("redeem_catalog_voucher_for_schedule", {
     p_voucher_id: hashCode(input.code),
     p_destination_id: input.destination.id,
     p_session_id: input.sessionId,
