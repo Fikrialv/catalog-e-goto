@@ -56,7 +56,6 @@ DECLARE
   redemption record;
   repeat_row record;
   regular record;
-  used integer;
 BEGIN
   SELECT * INTO redemption FROM public.redeem_catalog_voucher_for_schedule(
     repeat('a',64),'trip-1',
@@ -72,8 +71,6 @@ BEGIN
   IF repeat_row.id <> redemption.id OR repeat_row.final_amount <> 425000 THEN
     RAISE EXCEPTION 'Idempotent retry changed redemption';
   END IF;
-  SELECT redeemed_count INTO used FROM public.vouchers WHERE id=repeat('a',64);
-  IF used <> 1 THEN RAISE EXCEPTION 'Repeat redemption consumed quota'; END IF;
   BEGIN
     PERFORM * FROM public.redeem_catalog_voucher_for_schedule(
       repeat('a',64),'trip-1',
@@ -136,4 +133,15 @@ BEGIN
     RAISE EXCEPTION 'Backward schedule accepted';
   END IF;
   RAISE NOTICE 'PASS cross-month SQL validation';
+END $$;
+
+RESET ROLE;
+DO $$ BEGIN
+  IF (SELECT redeemed_count FROM public.vouchers WHERE id=repeat('a',64)) <> 2 THEN
+    RAISE EXCEPTION 'Repeat redemption consumed quota or limit not enforced';
+  END IF;
+  IF (SELECT count(*) FROM public.voucher_redemptions WHERE voucher_id=repeat('a',64)) <> 2 THEN
+    RAISE EXCEPTION 'Redemption rows must be idempotent';
+  END IF;
+  RAISE NOTICE 'PASS stored voucher usage limit and redemption count';
 END $$;
