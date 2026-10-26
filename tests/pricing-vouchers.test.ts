@@ -50,6 +50,14 @@ describe("date scoped promotion and voucher pricing", () => {
       .toBe(trip.prices[0].amount - 25000);
   });
 
+  it("prevents a voucher from being applied to a draft schedule", () => {
+    const trip = fixture();
+    trip.schedules[0].publicationStatus = "draft";
+    expect(() =>
+      getTripPriceBreakdown(trip, "oct-10", trip.prices[0].id, 25000)
+    ).toThrow("Tanggal trip tidak tersedia");
+  });
+
   it("ignores disabled, unrelated and unpublished highlights", () => {
     const trip = fixture();
     trip.highlights[0].enabled = false;

@@ -54,6 +54,14 @@ export function WhatsAppButton({
     breakdown,
   );
 
+  if (!schedule || schedule.publicationStatus !== "published" ||
+      schedule.availabilityStatus !== "available") {
+    return (
+      <p role="status" className="rounded-xl bg-paper p-4 text-sm text-ink-muted">
+        Pilih tanggal keberangkatan yang tersedia sebelum bertanya lewat WhatsApp.
+      </p>
+    );
+  }
   if (!WHATSAPP_NUMBER || !href) {
     return (
       <div className="rounded-[1.25rem] border border-dashed border-ink/20 bg-paper p-5">

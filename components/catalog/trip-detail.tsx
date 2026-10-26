@@ -101,7 +101,16 @@ export function TripDetail({
     amount: number;
     finalAmount: number;
     redemptionId: string;
+    scheduleId: string;
+    priceId: string;
   } | null>(null);
+  // A response from an earlier schedule/meeting point cannot change
+  // the currently selected pricing or WhatsApp total.
+  const activeVoucher =
+    voucherRedemption?.scheduleId === selectedScheduleId &&
+    voucherRedemption?.priceId === selectedPriceId
+      ? voucherRedemption
+      : null;
   const selectedSchedule = publishedSchedules.find(
     (schedule) => schedule.id === selectedScheduleId,
   );
@@ -126,11 +135,11 @@ export function TripDetail({
         destination,
         selectedSchedule.id,
         selectedPrice.id,
-        voucherRedemption?.amount ?? 0,
+        activeVoucher?.amount ?? 0,
       )
     : null;
   const whatsappPrice = priceBreakdown
-    ? { ...selectedPrice, amount: voucherRedemption?.finalAmount ?? priceBreakdown.finalPrice }
+    ? { ...selectedPrice, amount: activeVoucher?.finalAmount ?? priceBreakdown.finalPrice }
     : selectedPrice;
   const displayItinerary = destination.itinerary;
   const scheduleByMonth = publishedSchedules.reduce<
@@ -374,7 +383,17 @@ export function TripDetail({
                   destination={destination}
                   scheduleId={selectedSchedule.id}
                   price={selectedPrice}
-                  onRedeemed={setVoucherRedemption}
+                  onRedeemed={(result) =>
+                    setVoucherRedemption(
+                      result
+                        ? {
+                            ...result,
+                            scheduleId: selectedSchedule.id,
+                            priceId: selectedPrice.id,
+                          }
+                        : null,
+                    )
+                  }
                 />
               ) : null}
               <div className="my-7 h-px bg-ink/10" />
@@ -383,8 +402,8 @@ export function TripDetail({
                   destination={destination}
                   schedule={selectedSchedule}
                   price={whatsappPrice}
-                  voucherRedemptionId={voucherRedemption?.redemptionId}
-                  voucherAmount={voucherRedemption?.amount}
+                  voucherRedemptionId={activeVoucher?.redemptionId}
+                  voucherAmount={activeVoucher?.amount}
                   breakdown={priceBreakdown ?? undefined}
                 />
               </div>
