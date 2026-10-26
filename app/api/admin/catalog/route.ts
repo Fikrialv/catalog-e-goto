@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/services/auth";
+import { authorizeAdminApi } from "@/lib/api-auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { parseDestinationPayload } from "@/lib/validation";
 
 export async function GET() {
-  await requireAdmin();
+  const auth = await authorizeAdminApi();
+  if (!auth.ok) return auth.response;
   const repository = await getCatalogRepository();
   return NextResponse.json({ records: await repository.listAdmin() });
 }
 
 export async function POST(request: Request) {
-  const user = await requireAdmin(["ADMIN", "EDITOR"]);
+  const auth = await authorizeAdminApi(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const body = (await request.json().catch(() => null)) as {
     action?: string;
     payload?: unknown;
