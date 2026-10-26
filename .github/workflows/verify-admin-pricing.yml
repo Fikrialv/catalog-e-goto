@@ -24,3 +24,38 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
+
+  database-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: egoto_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d egoto_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: egoto_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap isolated database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_bootstrap.sql
+      - name: Apply catalog cross-month migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250000_allow_cross_month_schedule_ranges.sql
+      - name: Apply secured voucher migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250001_secure_date_scoped_voucher.sql
+      - name: Apply catalog public-read security migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250002_protect_catalog_drafts.sql
+      - name: Verify access, quota and pricing
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_assertions.sql
