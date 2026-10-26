@@ -8,7 +8,7 @@ function blankDestination(monthKey: string): TripDestination {
   const id = `destination-${Date.now()}`;
   return {
     id,
-    slug: "destination-baru",
+    slug: `destination-baru-${Date.now()}`,
     name: "Destination baru",
     category: "mountain",
     duration: "2 Hari 1 Malam",
@@ -19,9 +19,7 @@ function blankDestination(monthKey: string): TripDestination {
       sortOrder: 1,
     },
     gallery: [],
-    prices: [
-      { id: "price-1", label: "Meeting point", amount: 1, sortOrder: 1 },
-    ],
+    prices: [],
     schedules: [
       {
         id: `schedule-${Date.now()}`,

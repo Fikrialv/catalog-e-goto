@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/services/auth";
+import { authorizeAdminApi } from "@/lib/api-auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { parseDestinationPayload } from "@/lib/validation";
 
@@ -8,7 +8,8 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  await requireAdmin();
+  const auth = await authorizeAdminApi();
+  if (!auth.ok) return auth.response;
   const { id } = await context.params;
   const repository = await getCatalogRepository();
   const record = await repository.getAdmin(id);
@@ -24,7 +25,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const user = await requireAdmin(["ADMIN", "EDITOR"]);
+  const auth = await authorizeAdminApi(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const { id } = await context.params;
   const body = (await request.json().catch(() => null)) as {
     action?: string;

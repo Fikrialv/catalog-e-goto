@@ -160,3 +160,43 @@ export function toPublicDestination(record: CatalogRecord) {
     ),
   } satisfies TripDestination;
 }
+
+/** Keep public URLs stable while an editor modifies a published draft. */
+export function slugForDraftSave(
+  status: CatalogRecord["status"],
+  currentSlug: string,
+  draftSlug: string,
+) {
+  return status === "published" ? currentSlug : draftSlug;
+}
+
+/** Return a free departure day in the target month, or null when full. */
+export function nextUnusedScheduleDate(
+  schedules: TripDestination["schedules"],
+  monthKey: string,
+  startAfter?: string,
+): string | null {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey)) return null;
+  const [year, month] = monthKey.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const taken = new Set(schedules.map((schedule) => schedule.startDate));
+  const candidates = Array.from({ length: lastDay }, (_, index) =>
+    `${monthKey}-${String(index + 1).padStart(2, "0")}`);
+  return candidates.find((date) => (startAfter ? date > startAfter : true) && !taken.has(date))
+    ?? candidates.find((date) => !taken.has(date))
+    ?? null;
+}
+
+/** Preserve number of travel days when duplicating a departure. */
+export function moveScheduleEndDate(
+  oldStart: string,
+  oldEnd: string | null,
+  newStart: string,
+): string | null {
+  if (!oldEnd) return null;
+  const original = Date.parse(`${oldStart}T00:00:00Z`);
+  const finish = Date.parse(`${oldEnd}T00:00:00Z`);
+  const next = Date.parse(`${newStart}T00:00:00Z`);
+  if (![original, finish, next].every(Number.isFinite) || finish < original) return null;
+  return new Date(next + finish - original).toISOString().slice(0, 10);
+}

@@ -10,8 +10,8 @@ import { VoucherRedemption } from "@/components/catalog/voucher-redemption";
 import { ItineraryTimeline } from "@/components/catalog/itinerary-timeline";
 import {
   getDestinationHighlights,
-  getDiscountedPriceAmount,
 } from "@/lib/catalog-utils";
+import { getTripPriceBreakdown, getApplicablePromotion } from "@/lib/pricing";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 import {
   formatCustomerPrice,
@@ -42,11 +42,11 @@ export function TripDetail({
           selectedSchedule: "Selected schedule:",
           itineraryEyebrow: "Trip itinerary",
           itineraryTitle: "A journey with a clear rhythm.",
-          promoItinerary: "Your prepared promo itinerary.",
+          promoItinerary: "Itinerary for the selected trip.",
           meetingPoint: "Meeting point",
           choosePrice: "Choose a price option.",
           discountScope:
-            "Discount active for every meeting point and available departure schedule.",
+            "Discount applies only to dates selected for this promotion.",
           include: "Included",
           exclude: "Not included",
           notes: "Notes",
@@ -66,39 +66,61 @@ export function TripDetail({
           selectedSchedule: "Jadwal terpilih:",
           itineraryEyebrow: "Rundown perjalanan",
           itineraryTitle: "Perjalanan dalam ritme yang jelas.",
-          promoItinerary: "Itinerary promo yang sudah disiapkan.",
+          promoItinerary: "Rundown untuk perjalanan yang dipilih.",
           meetingPoint: "Titik keberangkatan",
           choosePrice: "Pilih opsi harga.",
           discountScope:
-            "Diskon aktif untuk semua titik keberangkatan dan jadwal keberangkatan tersedia.",
+            "Diskon hanya berlaku untuk tanggal keberangkatan yang dipilih admin.",
           include: "Termasuk",
           exclude: "Tidak termasuk",
           notes: "Catatan",
           updated: "Info diperbarui 6 Sep 2026",
         };
-  const highlightOffer =
+  const requestedHighlight =
     (highlightId
       ? getDestinationHighlights(destination).find(
           (offer) => offer.id === highlightId,
         )
-      : getDestinationHighlights(destination)[0]) ?? null;
+      : null) ?? null;
   const publishedSchedules = destination.schedules.filter(
     (schedule) => schedule.publicationStatus === "published",
   );
   const [selectedScheduleId, setSelectedScheduleId] = useState(
-    publishedSchedules[0]?.id ?? "",
+    (requestedHighlight &&
+      publishedSchedules.some((schedule) =>
+        schedule.id === requestedHighlight.scheduleId &&
+        schedule.availabilityStatus === "available")
+      ? requestedHighlight.scheduleId
+      : publishedSchedules.find((schedule) => schedule.availabilityStatus === "available")?.id) ??
+      "",
   );
   const [selectedPriceId, setSelectedPriceId] = useState(
-    highlightOffer?.priceId ?? destination.prices[0]?.id ?? "",
+    requestedHighlight?.priceId ?? destination.prices[0]?.id ?? "",
   );
   const [voucherRedemption, setVoucherRedemption] = useState<{
     amount: number;
     finalAmount: number;
     redemptionId: string;
+    scheduleId: string;
+    priceId: string;
   } | null>(null);
+  // A response from an earlier schedule/meeting point cannot change
+  // the currently selected pricing or WhatsApp total.
+  const activeVoucher =
+    voucherRedemption?.scheduleId === selectedScheduleId &&
+    voucherRedemption?.priceId === selectedPriceId
+      ? voucherRedemption
+      : null;
   const selectedSchedule = publishedSchedules.find(
     (schedule) => schedule.id === selectedScheduleId,
   );
+  const highlightOffer = selectedSchedule
+    ? getApplicablePromotion(
+        destination,
+        selectedSchedule.id,
+        selectedPriceId,
+      )
+    : null;
   const selectedPrice = destination.prices.find(
     (price) => price.id === selectedPriceId,
   ) ??
@@ -108,15 +130,17 @@ export function TripDetail({
       amount: 0,
       sortOrder: 0,
     };
-  const promotionalPrice = highlightOffer
-    ? {
-        ...selectedPrice,
-        amount: getDiscountedPriceAmount(selectedPrice, highlightOffer),
-      }
+  const priceBreakdown = selectedSchedule
+    ? getTripPriceBreakdown(
+        destination,
+        selectedSchedule.id,
+        selectedPrice.id,
+        activeVoucher?.amount ?? 0,
+      )
+    : null;
+  const whatsappPrice = priceBreakdown
+    ? { ...selectedPrice, amount: activeVoucher?.finalAmount ?? priceBreakdown.finalPrice }
     : selectedPrice;
-  const whatsappPrice = voucherRedemption
-    ? { ...promotionalPrice, amount: voucherRedemption.finalAmount }
-    : promotionalPrice;
   const displayItinerary = destination.itinerary;
   const scheduleByMonth = publishedSchedules.reduce<
     Record<string, DepartureSchedule[]>
@@ -190,7 +214,8 @@ export function TripDetail({
                     {copy.discountScope}
                   </p>
                 </div>
-              ) : Object.keys(scheduleByMonth).length ? (
+              ) : null}
+              {Object.keys(scheduleByMonth).length ? (
                 <div className="space-y-7">
                   {Object.entries(scheduleByMonth).map(([month, schedules]) => (
                     <div key={month}>
@@ -212,7 +237,10 @@ export function TripDetail({
                               type="button"
                               disabled={unavailable}
                               aria-pressed={selected}
-                              onClick={() => setSelectedScheduleId(schedule.id)}
+                              onClick={() => {
+                                setSelectedScheduleId(schedule.id);
+                                setVoucherRedemption(null);
+                              }}
                               className={`min-h-16 rounded-2xl border px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${selected ? "border-ink bg-ink text-white" : "border-ink/12 bg-white text-ink hover:-translate-y-0.5 hover:border-ink/30"} ${unavailable ? "cursor-not-allowed opacity-55" : "cursor-pointer"}`}
                             >
                               <span className="block text-sm font-bold">
@@ -297,7 +325,10 @@ export function TripDetail({
               <div className="mt-6 space-y-2">
                 {destination.prices.map((price) => {
                   const selected = price.id === selectedPriceId;
-                  const isDiscountedPrice = Boolean(highlightOffer);
+                  const applicableOffer = selectedSchedule
+                    ? getApplicablePromotion(destination, selectedSchedule.id, price.id)
+                    : null;
+                  const isDiscountedPrice = Boolean(applicableOffer);
                   return (
                     <button
                       key={price.id}
@@ -329,10 +360,11 @@ export function TripDetail({
                               className={`block ${selected ? "text-white" : "text-primary-dark"}`}
                             >
                               {formatCustomerPrice(
-                                getDiscountedPriceAmount(
-                                  price,
-                                  highlightOffer!,
-                                ),
+                                getTripPriceBreakdown(
+                                  destination,
+                                  selectedSchedule!.id,
+                                  price.id,
+                                ).finalPrice,
                                 currency,
                               )}
                             </span>
@@ -345,19 +377,34 @@ export function TripDetail({
                   );
                 })}
               </div>
-              <VoucherRedemption
-                destination={destination}
-                price={selectedPrice}
-                onRedeemed={setVoucherRedemption}
-              />
+              {selectedSchedule ? (
+                <VoucherRedemption
+                  key={`${selectedSchedule.id}:${selectedPrice.id}`}
+                  destination={destination}
+                  scheduleId={selectedSchedule.id}
+                  price={selectedPrice}
+                  onRedeemed={(result) =>
+                    setVoucherRedemption(
+                      result
+                        ? {
+                            ...result,
+                            scheduleId: selectedSchedule.id,
+                            priceId: selectedPrice.id,
+                          }
+                        : null,
+                    )
+                  }
+                />
+              ) : null}
               <div className="my-7 h-px bg-ink/10" />
               <div className="flex justify-center">
                 <WhatsAppButton
                   destination={destination}
                   schedule={selectedSchedule}
                   price={whatsappPrice}
-                  voucherRedemptionId={voucherRedemption?.redemptionId}
-                  voucherAmount={voucherRedemption?.amount}
+                  voucherRedemptionId={activeVoucher?.redemptionId}
+                  voucherAmount={activeVoucher?.amount}
+                  breakdown={priceBreakdown ?? undefined}
                 />
               </div>
             </section>
