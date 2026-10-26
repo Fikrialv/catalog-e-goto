@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { redeemVoucherSchema } from "@/lib/voucher-validation";
 import { getDestinationBySlug } from "@/services/catalog";
 import { redeemVoucher } from "@/services/vouchers";
+import { getTripPriceBreakdown } from "@/lib/pricing";
 
 export async function POST(request: Request) {
   const parsed = redeemVoucherSchema.safeParse(await request.json().catch(() => null));
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   const price = destination?.prices.find((item) => item.id === parsed.data.priceId);
   if (!destination || !price) return NextResponse.json({ message: "Trip atau titik keberangkatan tidak tersedia." }, { status: 400 });
   try {
+    getTripPriceBreakdown(destination, parsed.data.scheduleId, price.id);
     const redemption = await redeemVoucher({ ...parsed.data, destination, price });
     return NextResponse.json({ ok: true, redemption });
   } catch (error) {

@@ -6,8 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { categoryLabel } from "@/lib/format";
 import type { TripDestination } from "@/types/catalog";
 import { ScheduleChips } from "@/components/catalog/schedule-chips";
-import { trackCatalogEvent } from "@/components/catalog/event-tracker";
-import { whatsappHref, WHATSAPP_NUMBER } from "@/lib/whatsapp";
+
 import {
   getDiscountedPriceAmount,
   getMonthlyHighlights,
@@ -45,29 +44,26 @@ export function DestinationCard({
   const priceFrom = Math.min(
     ...destination.prices.map((price) => price.amount),
   );
-  const highlight = destination.schedules[0]
-    ? (getMonthlyHighlights(
+  const monthPromos = destination.schedules[0]
+    ? getMonthlyHighlights(
         destination,
         monthKeyFromDate(destination.schedules[0].startDate),
-      )[0] ?? null)
+      )
+    : [];
+  const highlight = monthPromos.find((offer) =>
+    destination.schedules.some((schedule) =>
+      schedule.id === offer.scheduleId &&
+      schedule.publicationStatus === "published" &&
+      schedule.availabilityStatus === "available",
+    )
+  ) ?? null;
+  const highlightedSchedule = highlight
+    ? destination.schedules.find((schedule) => schedule.id === highlight.scheduleId)
     : null;
   const highlightPrice = highlight
     ? (destination.prices.find((price) => price.id === highlight.priceId) ??
       destination.prices[0])
     : null;
-  const highlightHref =
-    highlight && highlightPrice
-      ? whatsappHref(
-          destination,
-          language === "en"
-            ? "All available schedules"
-            : "Semua jadwal tersedia",
-          {
-            ...highlightPrice,
-            amount: getDiscountedPriceAmount(highlightPrice, highlight),
-          },
-        )
-      : null;
   const detailHref = `/catalog/${destination.slug}${highlight ? `?highlight=${highlight.id}` : ""}`;
 
   return (
@@ -116,7 +112,7 @@ export function DestinationCard({
               </span>
             </div>
             <p className="mt-3 text-xs font-semibold text-ink-muted">
-              {copy.allMeetingPoints} · {copy.allSchedules} ·{" "}
+              {highlightedSchedule ? new Date(`${highlightedSchedule.startDate}T00:00:00Z`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : ""} ·{" "}
               {destination.itinerary.length} {copy.itinerary}
             </p>
             <div className="mt-3 flex flex-wrap items-baseline gap-2">
@@ -166,25 +162,7 @@ export function DestinationCard({
               aria-hidden="true"
             />
           </Link>
-          {highlightHref && WHATSAPP_NUMBER ? (
-            <a
-              href={highlightHref}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() =>
-                trackCatalogEvent(
-                  "whatsapp_cta_clicked",
-                  destination.slug,
-                  highlightPrice?.id,
-                )
-              }
-              className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#16804b] px-4 text-sm font-semibold text-white transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[#117441] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16804b]"
-            >
-              {language === "en"
-                ? "Ask about offer via WhatsApp"
-                : "Tanya promo via WhatsApp"}
-            </a>
-          ) : null}
+
         </div>
       </div>
     </article>

@@ -4,14 +4,11 @@ import type {
   TripDestination,
 } from "@/types/catalog";
 import {
-  formatDateLabel,
   formatPrice,
   formatScheduleLabel,
 } from "@/lib/format";
-import {
-  getDiscountedPriceAmount,
-  getHighlightSchedule,
-} from "@/lib/catalog-utils";
+import { getHighlightSchedule } from "@/lib/catalog-utils";
+import { getTripPriceBreakdown, type TripPriceBreakdown } from "@/lib/pricing";
 
 export const WHATSAPP_NUMBER =
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "") ?? "";
@@ -22,6 +19,7 @@ export function buildWhatsAppMessage(
   price: PriceOption,
   voucherRedemptionId?: string,
   voucherAmount?: number,
+  breakdown?: TripPriceBreakdown,
 ) {
   const hasVoucher = Boolean(
     voucherRedemptionId &&
@@ -37,12 +35,22 @@ export function buildWhatsAppMessage(
     `Destinasi: ${destination.name}`,
     `Tanggal: ${scheduleLabel || "Belum dipilih"}`,
     `Titik keberangkatan: ${price.label}`,
-    ...(hasVoucher
+    ...(breakdown
       ? [
-          `Potongan voucher: ${formatPrice(voucherAmount!)}`,
-          `Harga setelah voucher: ${formatPrice(price.amount)}`,
+          `Harga normal: ${formatPrice(breakdown.normalPrice)}`,
+          ...(breakdown.promotionDiscount > 0
+            ? [`Diskon tanggal: -${formatPrice(breakdown.promotionDiscount)}`,
+               `Harga setelah diskon: ${formatPrice(breakdown.afterPromotion)}`]
+            : []),
+          ...(hasVoucher
+            ? [`Potongan voucher: -${formatPrice(breakdown.voucherDiscount)}`]
+            : []),
+          `Harga final: ${formatPrice(breakdown.finalPrice)}`,
         ]
-      : [`Harga: ${formatPrice(price.amount)}`]),
+      : hasVoucher
+        ? [`Potongan voucher: ${formatPrice(voucherAmount!)}`,
+           `Harga setelah voucher: ${formatPrice(price.amount)}`]
+        : [`Harga: ${formatPrice(price.amount)}`]),
     "",
     "Terima kasih.",
   ].join("\n");
@@ -54,6 +62,7 @@ export function whatsappHref(
   price: PriceOption,
   voucherRedemptionId?: string,
   voucherAmount?: number,
+  breakdown?: TripPriceBreakdown,
 ) {
   if (!WHATSAPP_NUMBER) return null;
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
@@ -63,6 +72,7 @@ export function whatsappHref(
       price,
       voucherRedemptionId,
       voucherAmount,
+      breakdown,
     ),
   )}`;
 }
@@ -73,6 +83,11 @@ export function buildHighlightWhatsAppMessage(
   normalPrice: PriceOption,
 ) {
   const schedule = getHighlightSchedule(destination, highlight);
+  const pricing = schedule && schedule.publicationStatus === "published" &&
+      schedule.availabilityStatus === "available"
+    ? getTripPriceBreakdown(destination, schedule.id, normalPrice.id)
+    : null;
+  if (!pricing || pricing.promotion?.id !== highlight.id) return "";
   return [
     "Halo E-GOTO,",
     "",
@@ -80,10 +95,10 @@ export function buildHighlightWhatsAppMessage(
     "",
     `Destinasi: ${destination.name}`,
     `Promo: ${highlight.label}`,
-    `Tanggal: ${schedule ? formatDateLabel(schedule.startDate) : "Belum tersedia"}`,
+    `Tanggal: ${schedule ? formatScheduleLabel(schedule) : "Belum tersedia"}`,
     `Titik keberangkatan: ${normalPrice.label}`,
     `Harga normal: ${formatPrice(normalPrice.amount)}`,
-    `Harga discount: ${formatPrice(getDiscountedPriceAmount(normalPrice, highlight))}`,
+    `Harga discount: ${formatPrice(pricing.finalPrice)}`,
     "Itinerary:",
     ...destination.itinerary.map((day) => `${day.dayNumber}. ${day.title}`),
     "",
@@ -97,9 +112,8 @@ export function highlightWhatsappHref(
   normalPrice: PriceOption,
 ) {
   if (!WHATSAPP_NUMBER) return null;
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    buildHighlightWhatsAppMessage(destination, highlight, normalPrice),
-  )}`;
+  const message = buildHighlightWhatsAppMessage(destination, highlight, normalPrice);
+  return message ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}` : null;
 }
 
 export { formatScheduleLabel };

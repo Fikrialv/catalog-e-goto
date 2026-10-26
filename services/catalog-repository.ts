@@ -19,6 +19,7 @@ import {
   createChangeSummary,
   normalizeDestination,
   nowIso,
+  slugForDraftSave,
 } from "@/lib/catalog-utils";
 import { parseDestinationPayload } from "@/lib/validation";
 
@@ -236,7 +237,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       .update({
         draft_payload: parsed,
         draft_version: draftVersion,
-        slug: parsed.slug,
+        slug: slugForDraftSave(record.status, record.slug, parsed.slug),
         updated_at: nowIso(),
       })
       .eq("id", id)
@@ -257,6 +258,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
   async publish(id: string, userId: string) {
     const record = await this.row(id);
     if (!record) throw new Error("Destination tidak ditemukan.");
+    if (!record.draft.schedules.some(
+      (schedule) => schedule.publicationStatus === "published",
+    )) {
+      throw new Error("Minimal satu jadwal berstatus published wajib dipilih sebelum Publish.");
+    }
+    if (!record.draft.prices.length) {
+      throw new Error("Minimal satu harga wajib diisi sebelum Publish.");
+    }
     const publishedAt = nowIso();
     const published = normalizeDestination(record.draft, "published");
     published.publishedAt = publishedAt;
@@ -265,6 +274,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
       .from("catalog_documents")
       .update({
         publication_status: "published",
+        slug: published.slug,
         published_payload: published,
         published_version: record.draftVersion,
         published_at: publishedAt,

@@ -14,6 +14,7 @@ export function formatMonthLabel(monthKey: string) {
   return new Intl.DateTimeFormat("id-ID", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(idDate(`${monthKey}-01`));
 }
 
@@ -22,6 +23,7 @@ export function formatDateLabel(date: string) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   }).format(idDate(date));
 }
 
@@ -32,6 +34,7 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
 
   if (!end) return formatter.format(start);
@@ -39,7 +42,7 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
     start.getUTCMonth() === end.getUTCMonth() &&
     start.getUTCFullYear() === end.getUTCFullYear()
   ) {
-    return `${start.getUTCDate()}–${end.getUTCDate()} ${new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(start)}`;
+    return `${start.getUTCDate()}–${end.getUTCDate()} ${new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" }).format(start)}`;
   }
   return `${formatter.format(start)} – ${formatter.format(end)}`;
 }
@@ -47,9 +50,16 @@ export function formatScheduleLabel(schedule: DepartureSchedule) {
 export function formatScheduleCompact(schedule: DepartureSchedule) {
   const start = idDate(schedule.startDate);
   const end = schedule.endDate ? idDate(schedule.endDate) : null;
-  return end
-    ? `${start.getUTCDate()}–${end.getUTCDate()}`
-    : `${start.getUTCDate()}`;
+  if (!end) return `${start.getUTCDate()}`;
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    const yearMonth = new Intl.DateTimeFormat("id-ID", { month: "short", year: "numeric", timeZone: "UTC" });
+    return `${start.getUTCDate()} ${yearMonth.format(start)} – ${end.getUTCDate()} ${yearMonth.format(end)}`;
+  }
+  if (start.getUTCMonth() !== end.getUTCMonth()) {
+    const month = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: "UTC" });
+    return `${start.getUTCDate()} ${month.format(start)} – ${end.getUTCDate()} ${month.format(end)}`;
+  }
+  return `${start.getUTCDate()}–${end.getUTCDate()}`;
 }
 
 export function categoryLabel(category: Category) {
