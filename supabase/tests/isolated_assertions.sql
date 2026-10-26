@@ -22,8 +22,8 @@ BEGIN
   IF NOT has_column_privilege('anon','public.catalog_documents','published_payload','SELECT') THEN
     RAISE EXCEPTION 'Anon must read published_payload';
   END IF;
-  IF has_function_privilege('anon','public.redeem_catalog_voucher(text,text,uuid,text,integer)','EXECUTE') THEN
-    RAISE EXCEPTION 'Old insecure RPC still publicly callable';
+  IF NOT has_function_privilege('anon','public.redeem_catalog_voucher(text,text,uuid,text,integer)','EXECUTE') THEN
+    RAISE EXCEPTION 'Old RPC prematurely revoked before application cutover';
   END IF;
   IF NOT has_function_privilege('anon','public.redeem_catalog_voucher_for_schedule(text,text,uuid,text,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Safe voucher RPC not callable';

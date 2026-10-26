@@ -59,3 +59,7 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250002_protect_catalog_drafts.sql
       - name: Verify access, quota and pricing
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_assertions.sql
+      - name: Apply legacy voucher RPC cutover (post-deploy migration)
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250003_revoke_legacy_voucher_rpc.sql
+      - name: Verify legacy API disabled after cutover
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_cutover_assertions.sql

@@ -69,6 +69,12 @@ BEGIN
     END IF;
   END LOOP;
 
+  -- Serialize concurrent retries for the same code, trip and browser session.
+  -- This prevents a duplicate request from racing the idempotency SELECT.
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    p_voucher_id || ':' || p_destination_id || ':' || p_session_id::text, 0
+  ));
+
   -- Preserve idempotency: a session cannot spend one voucher on two dates
   -- or two meeting points. Never re-use an old redemption at a different price.
   SELECT * INTO existing_row FROM public.voucher_redemptions AS vr
@@ -120,6 +126,6 @@ REVOKE ALL ON FUNCTION public.redeem_catalog_voucher_for_schedule(text,text,uuid
 GRANT EXECUTE ON FUNCTION public.redeem_catalog_voucher_for_schedule(text,text,uuid,text,text)
   TO anon, authenticated;
 
--- Retire the old client-trusted base-amount RPC entry point.
-REVOKE ALL ON FUNCTION public.redeem_catalog_voucher(text,text,uuid,text,integer)
-  FROM PUBLIC, anon, authenticated;
+-- NOTE: The legacy RPC stays callable during the rollout overlap.
+-- After the new application is deployed and voucher smoke checks pass,
+-- apply the separate post-deploy cutover migration to revoke the old RPC.
