@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, MapPin, MessageCircle, Search, X } from "lucide-react";
 import type { TripCategory, TripDestination } from "@/types/catalog";
-import { publicCategoriesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
+import { publicCategoriesForTrip, publicCategoryNamesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 
@@ -50,7 +50,7 @@ export function ListTripSection({
               Jelajahi List Trip
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
-              Jelajahi destinasi favorit dan tanyakan pilihan perjalananmu langsung ke tim E-GOTO.
+              Semua trip E-GOTO yang telah dipublikasikan, termasuk destinasi tanpa jadwal keberangkatan. Pilih jalur dan tanyakan detailnya kepada tim E-GOTO.
             </p>
           </div>
           <label className="relative block w-full shrink-0 lg:max-w-sm">
@@ -80,8 +80,7 @@ export function ListTripSection({
         {shown.length ? (
           <div className="mt-7 grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:gap-6">
             {shown.slice(0,limit).map((trip) => {
-              const labels = publicCategoriesForTrip(trip);
-              const label = enabledCategories.find((cat) => labels.includes(cat.slug))?.name ?? "Destinasi";
+              const label = publicCategoryNamesForTrip(trip, categories) || "Destinasi";
               return (
                 <button
                   key={trip.id}
@@ -101,8 +100,8 @@ export function ListTripSection({
                     className="object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transition-none"
                   />
                   <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#061f25]/95 via-[#061f25]/15 to-transparent"/>
-                  <span className="absolute left-3 top-3 max-w-[85%] truncate rounded-full border border-white/30 bg-white/85 px-3 py-1.5 text-[10px] font-bold text-ink backdrop-blur-sm sm:left-4 sm:top-4 sm:text-xs">
-                    {label}{labels.length > 1 ? ` +${labels.length-1}` : ""}
+                  <span className="absolute left-3 top-3 max-w-[90%] rounded-full border border-white/30 bg-white/85 px-3 py-1.5 text-[10px] font-bold text-ink backdrop-blur-sm sm:left-4 sm:top-4 sm:text-xs">
+                    {label}
                   </span>
                   <span className="absolute inset-x-0 bottom-0 flex items-end gap-2 px-3 pb-4 sm:px-5 sm:pb-5">
                     <span className="min-w-0 flex-1">
