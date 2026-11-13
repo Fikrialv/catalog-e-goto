@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowLeft, Plus } from "lucide-react";
+import { Activity, ArrowLeft, Plus, CalendarDays } from "lucide-react";
 import { requireAdmin } from "@/services/auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
@@ -45,7 +45,7 @@ export default async function AdminCatalogPage({
             </Link>
             <p className="eyebrow mt-10">Admin catalog</p>
             <h1 className="mt-3 font-serif text-5xl tracking-[-0.055em] text-ink">
-              Kelola informasi trip.
+              Kelola semua trip E-GOTO.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">
               {user.email} · {user.role} · Supabase Auth
@@ -62,6 +62,7 @@ export default async function AdminCatalogPage({
             {user.role === "ADMIN" ? (
               <Link href="/admin/trip-categories" className="inline-flex min-h-11 items-center rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35">Kategori Trip</Link>
             ) : null}
+            <Link href="/admin/schedules" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink"><CalendarDays className="h-4 w-4" />Kelola Jadwal</Link>
             <Link
               href="/admin/vouchers"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
