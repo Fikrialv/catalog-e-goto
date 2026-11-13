@@ -22,6 +22,7 @@ import {
   slugForDraftSave,
 } from "@/lib/catalog-utils";
 import { parseDestinationPayload } from "@/lib/validation";
+import { safePublicTrip } from "@/lib/public-trip";
 
 export type CatalogRepository = {
   listPublic(): Promise<TripDestination[]>;
@@ -145,18 +146,19 @@ class SupabaseCatalogRepository implements CatalogRepository {
       >();
     if (error) throw error;
     return data
-      .map((row) => ({
-        ...normalizeDestination(
-          parseDestinationPayload(row.published_payload),
-          "published",
-        ),
-        publishedAt: row.published_at,
-        publishedVersion: row.published_version,
-        schedules:
-          row.published_payload?.schedules.filter(
-            (schedule) => schedule.publicationStatus === "published",
-          ) ?? [],
-      }))
+      .flatMap((row) => {
+        const trip = safePublicTrip(row.published_payload);
+        return trip
+          ? [{
+              ...trip,
+              publishedAt: row.published_at,
+              publishedVersion: row.published_version,
+              schedules: trip.schedules.filter(
+                (schedule) => schedule.publicationStatus === "published",
+              ),
+            }]
+          : [];
+      })
       .sort(compareDestinationsByDeparture);
   }
 
@@ -169,14 +171,14 @@ class SupabaseCatalogRepository implements CatalogRepository {
       .maybeSingle();
     if (error) throw error;
     if (!data?.published_payload) return undefined;
-    const publishedPayload = parseDestinationPayload(data.published_payload);
+    const publishedPayload = safePublicTrip(data.published_payload);
+    if (!publishedPayload) return undefined;
     return {
-      ...normalizeDestination(publishedPayload, "published"),
+      ...publishedPayload,
       publishedAt: data.published_at,
       publishedVersion: data.published_version,
       schedules: publishedPayload.schedules.filter(
-        (schedule: TripDestination["schedules"][number]) =>
-          schedule.publicationStatus === "published",
+        (schedule) => schedule.publicationStatus === "published",
       ),
     };
   }
