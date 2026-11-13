@@ -10,12 +10,13 @@ import {
 } from "@/services/catalog";
 import { DestinationCard } from "@/components/catalog/destination-card";
 import { ListTripSection } from "@/components/catalog/list-trip-section";
-import { getPublicTripCategories } from "@/services/trip-categories";
+import { getPublicListTripCategories } from "@/services/list-trip-categories";
+import { getPublicListTrips } from "@/services/list-trips";
 import { getDestinationHighlights, isUpcomingAvailableSchedule } from "@/lib/catalog-utils";
 
 export default async function HomePage() {
   const destinations = await getPublishedDestinations();
-  const tripCategories = await getPublicTripCategories();
+  const [tripCategories, listTrips] = await Promise.all([getPublicListTripCategories(), getPublicListTrips()]);
   const activeHighlights = destinations.filter(
     (destination) => getDestinationHighlights(destination).some((offer) => destination.schedules.some((schedule) => schedule.id === offer.scheduleId && isUpcomingAvailableSchedule(schedule))),
   );
@@ -42,7 +43,7 @@ export default async function HomePage() {
         </a>
       </section>
 
-      <ListTripSection destinations={destinations} categories={tripCategories} />
+      <ListTripSection destinations={listTrips} categories={tripCategories} />
 
       {activeHighlights.length ? (
       <section className="bg-paper/35 px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
