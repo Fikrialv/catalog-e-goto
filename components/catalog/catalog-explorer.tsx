@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import type { CatalogMonth, Category, TripCategory, TripDestination } from "@/types/catalog";
@@ -61,7 +61,9 @@ export function CatalogExplorer({
         };
   const router = useRouter();
   const pathname = usePathname();
-  const [month, setMonth] = useState(initialMonth);
+  // Keep the selected tab and schedule cards on the same server-rendered month.
+  const month = initialMonth;
+  const [isPending, startTransition] = useTransition();
   const [category, setCategory] = useState<Category | "all">(initialCategory);
   const [duration, setDuration] = useState(initialDuration);
   const [search, setSearch] = useState(initialSearch);
@@ -72,11 +74,10 @@ export function CatalogExplorer({
     if (category !== "all") query.set("category", category);
     if (duration !== "all") query.set("duration", duration);
     if (search.trim()) query.set("search", search.trim());
-    router.replace(`${pathname}?${query.toString()}`, { scroll: false });
+    startTransition(() => router.replace(`${pathname}?${query.toString()}`, { scroll: false }));
   }
 
   function selectMonth(value: string) {
-    setMonth(value);
     const query = new URLSearchParams({ month: value });
     if (category !== "all") query.set("category", category);
     if (duration !== "all") query.set("duration", duration);
@@ -87,6 +88,7 @@ export function CatalogExplorer({
   return (
     <section
       id="catalog-grid"
+      aria-busy={isPending}
       className="scroll-mt-8 bg-paper/82 px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
     >
       <div className="mx-auto max-w-[1440px]">
