@@ -45,7 +45,7 @@ export default async function AdminCatalogPage({
             </Link>
             <p className="eyebrow mt-10">Admin catalog</p>
             <h1 className="mt-3 font-serif text-5xl tracking-[-0.055em] text-ink">
-              Kelola semua trip E-GOTO.
+              Kelola jadwal Catalog E-GOTO.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-ink-muted">
               {user.email} · {user.role} · Supabase Auth
@@ -62,7 +62,7 @@ export default async function AdminCatalogPage({
             {user.role === "ADMIN" ? (
               <Link href="/admin/trip-categories" className="inline-flex min-h-11 items-center rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35">Kategori Trip</Link>
             ) : null}
-            <Link href="/admin/schedules" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink"><CalendarDays className="h-4 w-4" />Kelola Jadwal</Link>
+            <Link href="/admin/trips" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink"><CalendarDays className="h-4 w-4" />Master List Trip</Link>
             <Link
               href="/admin/vouchers"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -71,7 +71,7 @@ export default async function AdminCatalogPage({
             </Link>
             <LogoutButton />
             <Link
-              href="/admin/catalog/new"
+              href="/admin/trips/new"
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-white hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -95,7 +95,7 @@ export default async function AdminCatalogPage({
             Data katalog belum dapat dimuat: {catalogError}
           </p>
         ) : null}
-        <AdminDashboard records={records} canEdit={user.role !== "VIEWER"} />
+        <AdminDashboard records={records} canEdit={user.role !== "VIEWER"} mode="schedules" />
       </div>
     </main>
   );
