@@ -11,13 +11,13 @@ import {
 import { DestinationCard } from "@/components/catalog/destination-card";
 import { ListTripSection } from "@/components/catalog/list-trip-section";
 import { getPublicTripCategories } from "@/services/trip-categories";
-import { getDestinationHighlights } from "@/lib/catalog-utils";
+import { getDestinationHighlights, isUpcomingAvailableSchedule } from "@/lib/catalog-utils";
 
 export default async function HomePage() {
   const destinations = await getPublishedDestinations();
   const tripCategories = await getPublicTripCategories();
   const activeHighlights = destinations.filter(
-    (destination) => getDestinationHighlights(destination).length > 0,
+    (destination) => getDestinationHighlights(destination).some((offer) => destination.schedules.some((schedule) => schedule.id === offer.scheduleId && isUpcomingAvailableSchedule(schedule))),
   );
   const featured = activeHighlights;
 
