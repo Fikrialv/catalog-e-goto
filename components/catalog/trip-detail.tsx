@@ -417,6 +417,7 @@ export function TripDetail({
                 />
                 ) : inquiryWhatsapp ? (
                   <a href={inquiryWhatsapp} target="_blank" rel="noopener noreferrer"
+                    onClick={() => trackCatalogEvent("whatsapp_cta_clicked", destination.slug)}
                     className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#087a5c] px-5 text-center text-sm font-bold text-white hover:bg-[#075b48] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
                     Tanya ketersediaan via WhatsApp
                   </a>

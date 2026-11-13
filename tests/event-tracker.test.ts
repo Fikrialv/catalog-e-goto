@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCatalogSessionId, trackCatalogEvent } from "@/components/catalog/event-tracker";
 
 const uuid = "11111111-1111-4111-8111-111111111111";
-const fetchMock = vi.fn(async () => ({ ok: true }));
+const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true }));
 
 beforeEach(() => {
   vi.stubGlobal("crypto", { randomUUID: () => uuid });
@@ -21,8 +21,8 @@ describe("E-GOTO analytics event delivery", () => {
     trackCatalogEvent("destination_view","gunung-rinjani");
     trackCatalogEvent("whatsapp_cta_clicked","gunung-rinjani");
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    const first=JSON.parse(fetchMock.mock.calls[0][1].body);
-    const second=JSON.parse(fetchMock.mock.calls[1][1].body);
+    const first=JSON.parse((fetchMock.mock.calls[0][1] as {body:string}).body);
+    const second=JSON.parse((fetchMock.mock.calls[1][1] as {body:string}).body);
     expect(first).toMatchObject({eventType:"destination_view",destinationSlug:"gunung-rinjani",sessionId:uuid});
     expect(second).toMatchObject({eventType:"whatsapp_cta_clicked",destinationSlug:"gunung-rinjani",sessionId:uuid});
   });
