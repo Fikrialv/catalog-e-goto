@@ -30,6 +30,16 @@ export function isUpcomingAvailableSchedule(
     schedule.startDate >= today;
 }
 
+/** Always offer upcoming months even when a month has no departures yet. */
+export function upcomingCatalogMonths(today: string, count = 12): string[] {
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return [];
+  return Array.from({ length: count }, (_, index) =>
+    new Date(Date.UTC(year, month - 1 + index, 1)).toISOString().slice(0, 7),
+  );
+}
+
 export function monthKeyFromDate(startDate: string) {
   return startDate.slice(0, 7);
 }
