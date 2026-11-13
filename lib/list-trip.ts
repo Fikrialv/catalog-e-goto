@@ -1,4 +1,5 @@
 import type { TripCategory, TripDestination } from "@/types/catalog";
+import type { ListTrip } from "@/types/list-trip";
 
 export function normalizeTripCategories(categories: string[]): string[] {
   return [...new Set(categories.map((item) => item.trim().toLowerCase()).filter(Boolean))];
@@ -32,7 +33,7 @@ export function publicCategoryNamesForTrip(
   ).join(" · ");
 }
 
-export function filterListTrips<T extends TripDestination>(
+export function filterListTrips<T extends Pick<ListTrip,"name"|"description"|"location"|"category"|"categories">>(
   trips: T[],
   category: string,
   query: string,
@@ -47,13 +48,13 @@ export function filterListTrips<T extends TripDestination>(
 }
 
 export function buildTripInquiryMessage(
-  trip: TripDestination,
+  trip: Pick<ListTrip, "name"|"slug"|"routes"|"location">,
   routeId: string,
   origin: string,
 ): string {
   const chosen = trip.routes?.find((route) => route.id === routeId && route.active);
   const routeLabel = chosen ? chosen.name : "Belum ditentukan, ingin konsultasi";
-  const link = `${origin.replace(/\/$/, "")}/catalog/${encodeURIComponent(trip.slug)}`;
+  const link = `${origin.replace(/\/$/, "")}/trips`;
   return [
     "Halo Admin E-GOTO, saya ingin bertanya tentang trip:",
     "",
