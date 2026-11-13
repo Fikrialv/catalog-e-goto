@@ -49,7 +49,7 @@ const slug = z
   );
 
 const categorySlug = z.string().trim().regex(
-  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/,
   "Kategori harus menggunakan slug yang valid.",
 ).max(80);
 const route = z.object({
