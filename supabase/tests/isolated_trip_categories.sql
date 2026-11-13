@@ -1,8 +1,11 @@
 -- Validate category migration in a disposable PostgreSQL database only.
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.trip_categories) <> 2 THEN
-    RAISE EXCEPTION 'Expected two backfilled legacy categories';
+  IF (SELECT count(*) FROM public.trip_categories) <> 4 THEN
+    RAISE EXCEPTION 'Expected four categories, including inactive legacy tag';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.trip_categories WHERE slug='beach_waterfall' AND is_active=false) THEN
+    RAISE EXCEPTION 'Legacy tag must remain stored but inactive';
   END IF;
   IF NOT has_table_privilege('anon','public.trip_categories','SELECT') THEN
     RAISE EXCEPTION 'Public must be able to read active categories';
@@ -16,8 +19,8 @@ END $$;
 SET ROLE anon;
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.trip_categories) <> 2 THEN
-    RAISE EXCEPTION 'Anon category select failed';
+  IF (SELECT count(*) FROM public.trip_categories) <> 3 THEN
+    RAISE EXCEPTION 'Anon must only see Gunung, Pantai and Air Terjun';
   END IF;
 END $$;
 RESET ROLE;
@@ -25,7 +28,7 @@ RESET ROLE;
 SELECT set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
 SET ROLE authenticated;
 INSERT INTO public.trip_categories(id,slug,name,sort_order,is_active)
-VALUES ('camping','camping','Camping',3,true);
+VALUES ('camping','camping','Camping',5,true);
 UPDATE public.trip_categories SET name='Camping & Hiking'
 WHERE id='camping';
 DO $$ BEGIN
@@ -39,7 +42,7 @@ RESET ROLE;
 SET ROLE anon;
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.trip_categories) <> 3 THEN
+  IF (SELECT count(*) FROM public.trip_categories) <> 4 THEN
     RAISE EXCEPTION 'New active category is not public';
   END IF;
 END $$;
@@ -49,7 +52,7 @@ UPDATE public.trip_categories SET is_active=false WHERE id='camping';
 SET ROLE anon;
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.trip_categories) <> 2 THEN
+  IF (SELECT count(*) FROM public.trip_categories) <> 3 THEN
     RAISE EXCEPTION 'Inactive category visible to anon';
   END IF;
 END $$;

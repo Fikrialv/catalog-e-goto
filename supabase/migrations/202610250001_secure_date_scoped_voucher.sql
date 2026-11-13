@@ -53,13 +53,14 @@ BEGIN
   END IF;
 
   -- Apply only enabled promotions linked to this exact schedule.
-  -- Fixed nominal promotion currently applies to all meeting points.
+  -- Only the exact price / meeting point linked to the offer gets this discount.
   promo_amount := base_amount;
   FOR offer IN SELECT item
     FROM jsonb_array_elements(coalesce(doc.published_payload->'highlights', '[]'::jsonb)) AS item
   LOOP
     IF offer->>'enabled' = 'true'
       AND offer->>'scheduleId' = p_schedule_id
+      AND offer->>'priceId' = p_price_id
       AND offer->>'discountType' = 'fixed'
       AND (offer->>'discountValue') ~ '^[0-9]+$'
       AND (offer->>'discountValue')::integer > 0

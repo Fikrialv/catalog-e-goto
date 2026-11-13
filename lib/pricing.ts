@@ -17,6 +17,7 @@ export function getApplicablePromotion(
   const offers = destination.highlights.filter((offer) =>
     offer.enabled &&
     offer.scheduleId === scheduleId &&
+    offer.priceId === priceId &&
     offer.discountType === "fixed" &&
     Number.isInteger(offer.discountValue) &&
     (offer.discountValue ?? 0) > 0 &&

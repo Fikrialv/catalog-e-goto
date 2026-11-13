@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, MapPin, MessageCircle, Search, X } from "lucide-react";
 import type { TripCategory, TripDestination } from "@/types/catalog";
-import { categoriesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
+import { publicCategoriesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 
@@ -25,7 +25,7 @@ export function ListTripSection({
   const [selected, setSelected] = useState<TripDestination | null>(null);
   const enabledCategories = categories.filter((category) => category.isActive);
   const visibleCategories = enabledCategories.filter((category) =>
-    destinations.some((trip) => categoriesForTrip(trip).includes(category.slug))
+    destinations.some((trip) => publicCategoriesForTrip(trip).includes(category.slug))
   );
   const shown = useMemo(
     () => filterListTrips(destinations, selectedCategory, query),
@@ -80,7 +80,7 @@ export function ListTripSection({
         {shown.length ? (
           <div className="mt-7 grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:gap-6">
             {shown.slice(0,limit).map((trip) => {
-              const labels = categoriesForTrip(trip);
+              const labels = publicCategoriesForTrip(trip);
               const label = enabledCategories.find((cat) => labels.includes(cat.slug))?.name ?? "Destinasi";
               return (
                 <button
@@ -185,7 +185,7 @@ function TripInquiryModal({
   if (typeof document === "undefined") return null;
   const gallery = [trip.coverImage, ...trip.gallery.filter((image) => image.src !== trip.coverImage.src)];
   const routes = trip.routes?.filter((route) => route.active) ?? [];
-  const tagNames = categoriesForTrip(trip).map((slug) =>
+  const tagNames = publicCategoriesForTrip(trip).map((slug) =>
     categories.find((category) => category.slug === slug)?.name ?? slug
   );
   const message = buildTripInquiryMessage(

@@ -5,7 +5,8 @@ import type { TripCategory } from "@/types/catalog";
 
 export const LEGACY_TRIP_CATEGORIES: TripCategory[] = [
   { id: "mountain", slug: "mountain", name: "Gunung", sortOrder: 1, isActive: true },
-  { id: "beach_waterfall", slug: "beach_waterfall", name: "Pantai & Air Terjun", sortOrder: 2, isActive: true },
+  { id: "beach", slug: "beach", name: "Pantai", sortOrder: 2, isActive: true },
+  { id: "waterfall", slug: "waterfall", name: "Air Terjun", sortOrder: 3, isActive: true },
 ];
 
 type CategoryRow = {

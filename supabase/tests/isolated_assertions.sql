@@ -114,7 +114,14 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM NOT LIKE 'Tanggal trip sudah%' THEN RAISE; END IF;
   END;
-  RAISE NOTICE 'PASS voucher price, promo scope, idempotency, quota, schedule availability';
+  SELECT * INTO regular FROM public.redeem_catalog_voucher_for_schedule(
+    repeat('b',64),'trip-1',
+    '66666666-6666-4666-8666-666666666666','meeting-other','oct'
+  );
+  IF regular.amount <> 25000 OR regular.final_amount <> 525000 THEN
+    RAISE EXCEPTION 'Promotion incorrectly applied to another meeting point: %', row_to_json(regular);
+  END IF;
+  RAISE NOTICE 'PASS voucher price, meeting point promo scope, idempotency, quota, schedule availability';
 END $$;
 RESET ROLE;
 

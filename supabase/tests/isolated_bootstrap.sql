@@ -92,7 +92,7 @@ VALUES
  '{"slug":"uji-trip","secret":"PRIVATE_UNPUBLISHED_DRAFT"}'::jsonb,
  '{
    "slug":"uji-trip",
-   "prices":[{"id":"meeting-jkt","label":"Jakarta","amount":500000}],
+   "prices":[{"id":"meeting-jkt","label":"Jakarta","amount":500000},{"id":"meeting-other","label":"Surabaya","amount":550000}],
    "schedules":[
      {"id":"oct","startDate":"2026-10-27","endDate":"2026-10-28",
        "publicationStatus":"published","availabilityStatus":"available"},
@@ -114,4 +114,9 @@ INSERT INTO public.vouchers (
   id,destination_id,destination_name,amount,usage_limit,redeemed_count,status
 ) VALUES (
  repeat('a',64),'trip-1','Uji Trip',25000,2,0,'active'
+);
+INSERT INTO public.vouchers (
+  id,destination_id,destination_name,amount,usage_limit,redeemed_count,status
+) VALUES (
+ repeat('b',64),'trip-1','Uji Trip',25000,1,0,'active'
 );
