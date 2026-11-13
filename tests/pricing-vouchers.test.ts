@@ -122,7 +122,7 @@ describe("real calendar date validation", () => {
     expect(() => parseDestinationPayload(trip)).toThrow();
   });
 
-  it("requires at least one published departure before publication", () => {
+  it("allows a published inquiry trip without a published departure", () => {
     const trip = fixture();
     trip.highlights = [];
     trip.publicationStatus = "published";
@@ -130,7 +130,7 @@ describe("real calendar date validation", () => {
       ...schedule,
       publicationStatus: "draft",
     }));
-    expect(() => parseDestinationPayload(trip)).toThrow();
+    expect(() => parseDestinationPayload(trip)).not.toThrow();
   });
 
   it("accepts valid leap dates and year-crossing departures", () => {

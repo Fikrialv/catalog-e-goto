@@ -12,6 +12,8 @@ import {
   getDestinationHighlights,
 } from "@/lib/catalog-utils";
 import { getTripPriceBreakdown, getApplicablePromotion } from "@/lib/pricing";
+import { buildTripInquiryMessage } from "@/lib/list-trip";
+import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 import {
   formatCustomerPrice,
@@ -130,13 +132,19 @@ export function TripDetail({
       amount: 0,
       sortOrder: 0,
     };
-  const priceBreakdown = selectedSchedule
+  const hasBookingOptions = Boolean(selectedSchedule && destination.prices.length && selectedPrice.amount > 0);
+  const priceBreakdown = hasBookingOptions && selectedSchedule
     ? getTripPriceBreakdown(
         destination,
         selectedSchedule.id,
         selectedPrice.id,
         activeVoucher?.amount ?? 0,
       )
+    : null;
+  const inquiryWhatsapp = WHATSAPP_NUMBER
+    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        buildTripInquiryMessage(destination, "", process.env.NEXT_PUBLIC_SITE_URL || "https://e-goto.my.id"),
+      )}`
     : null;
   const whatsappPrice = priceBreakdown
     ? { ...selectedPrice, amount: activeVoucher?.finalAmount ?? priceBreakdown.finalPrice }
@@ -377,7 +385,7 @@ export function TripDetail({
                   );
                 })}
               </div>
-              {selectedSchedule ? (
+              {hasBookingOptions && selectedSchedule ? (
                 <VoucherRedemption
                   key={`${selectedSchedule.id}:${selectedPrice.id}`}
                   destination={destination}
@@ -398,6 +406,7 @@ export function TripDetail({
               ) : null}
               <div className="my-7 h-px bg-ink/10" />
               <div className="flex justify-center">
+                {hasBookingOptions ? (
                 <WhatsAppButton
                   destination={destination}
                   schedule={selectedSchedule}
@@ -406,6 +415,12 @@ export function TripDetail({
                   voucherAmount={activeVoucher?.amount}
                   breakdown={priceBreakdown ?? undefined}
                 />
+                ) : inquiryWhatsapp ? (
+                  <a href={inquiryWhatsapp} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#087a5c] px-5 text-center text-sm font-bold text-white hover:bg-[#075b48] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                    Tanya ketersediaan via WhatsApp
+                  </a>
+                ) : <p className="text-center text-sm text-ink-muted">Nomor WhatsApp E-GOTO belum dikonfigurasi.</p>}
               </div>
             </section>
 

@@ -9,6 +9,7 @@ type AnimatedMarqueeHeroProps = {
   title: React.ReactNode;
   description: string;
   ctaText: string;
+  ctaHref?: string;
   images: DestinationImage[];
   className?: string;
 };
@@ -18,6 +19,7 @@ export function AnimatedMarqueeHero({
   title,
   description,
   ctaText,
+  ctaHref = "/catalog",
   images,
   className,
 }: AnimatedMarqueeHeroProps) {
