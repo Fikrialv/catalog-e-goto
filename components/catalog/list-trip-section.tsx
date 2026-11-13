@@ -9,7 +9,6 @@ import type { TripCategory } from "@/types/catalog";
 import type { ListTrip } from "@/types/list-trip";
 import { publicCategoriesForTrip, publicCategoryNamesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
-import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 
 const PAGE_SIZE = 8;
 
@@ -88,7 +87,6 @@ export function ListTripSection({
                   type="button"
                   onClick={() => {
                     setSelected(trip);
-                    trackCatalogEvent("destination_view", trip.slug);
                   }}
                   aria-label={`Lihat detail trip ${trip.name}`}
                   className="group relative aspect-[4/5] min-w-0 overflow-hidden rounded-[20px] bg-[#184d50] text-left text-white shadow-[0_12px_32px_-20px_rgba(6,78,79,0.7)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_22px_44px_-20px_rgba(6,78,79,0.8)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-offset-4 motion-reduce:transition-none"
@@ -253,7 +251,6 @@ function TripInquiryModal({
           <div className="shrink-0 border-t border-ink/10 bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8">
             {whatsapp ? (
               <a href={whatsapp} target="_blank" rel="noopener noreferrer"
-                onClick={() => trackCatalogEvent("whatsapp_cta_clicked", trip.slug)}
                 className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#087a5c] px-4 text-center text-sm font-bold text-white transition-colors hover:bg-[#075b48] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
                 <MessageCircle className="h-5 w-5" aria-hidden="true"/> Tanya Trip via WhatsApp
               </a>
