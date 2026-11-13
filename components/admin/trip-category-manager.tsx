@@ -8,7 +8,7 @@ import type { TripCategory } from "@/types/catalog";
 type Editable = TripCategory;
 const inputClass = "min-h-11 w-full rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
 
-export function TripCategoryManager({ initial }: { initial: TripCategory[] }) {
+export function TripCategoryManager({ initial, endpoint = "/api/admin/trip-categories" }: { initial: TripCategory[]; endpoint?: string }) {
   const router = useRouter();
   const [categories,setCategories] = useState(initial);
   const [name,setName] = useState("");
@@ -21,7 +21,7 @@ export function TripCategoryManager({ initial }: { initial: TripCategory[] }) {
     if (loading) return false;
     setError(""); setNotice(""); setLoading(id);
     try {
-      const response = await fetch("/api/admin/trip-categories", {
+      const response = await fetch(endpoint, {
         method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const result = await response.json().catch(()=>({}));
