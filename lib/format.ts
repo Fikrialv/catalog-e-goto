@@ -63,5 +63,7 @@ export function formatScheduleCompact(schedule: DepartureSchedule) {
 }
 
 export function categoryLabel(category: Category) {
-  return category === "mountain" ? "Mountain" : "Beach & Waterfall";
+  if (category === "mountain") return "Gunung";
+  if (category === "beach_waterfall") return "Pantai & Air Terjun";
+  return category.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }

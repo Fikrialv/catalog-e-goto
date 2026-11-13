@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from "lucide-react";
 import type {
   AvailabilityStatus,
   CatalogRecord,
+  TripCategory,
   HighlightOffer,
   ItineraryDay,
   PublicationStatus,
@@ -14,6 +15,7 @@ import type {
 } from "@/types/catalog";
 import { createChangeSummary, clone, moveScheduleEndDate, nextUnusedScheduleDate } from "@/lib/catalog-utils";
 import { monthKeyFromDate } from "@/lib/catalog-utils";
+import { categoriesForTrip } from "@/lib/list-trip";
 import { formatMonthLabel } from "@/lib/format";
 
 const inputClass =
@@ -371,9 +373,11 @@ export function HighlightItineraryEditor({
 
 export function CatalogEditor({
   record,
+  categories = [],
   isNew = false,
 }: {
   record: CatalogRecord;
+  categories?: TripCategory[];
   isNew?: boolean;
 }) {
   const router = useRouter();
@@ -507,11 +511,6 @@ export function CatalogEditor({
     if (saving || uploadingImage !== null) return;
     if (dirty) {
       setError("Ada perubahan belum disimpan. Klik Save draft, lalu ulangi aksi.");
-      return;
-    }
-    if (action === "publish" &&
-        !payload.schedules.some((schedule) => schedule.publicationStatus === "published")) {
-      setError("Pilih minimal satu jadwal berstatus published sebelum Publish.");
       return;
     }
     if (
@@ -719,22 +718,41 @@ export function CatalogEditor({
                 className={inputClass}
               />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              <span>Kategori</span>
-              <select
-                value={payload.category}
-                onChange={(event) =>
-                  setField(
-                    "category",
-                    event.target.value as TripDestination["category"],
-                  )
-                }
-                className={inputClass}
-              >
-                <option value="mountain">Mountain</option>
-                <option value="beach_waterfall">Beach & Waterfall</option>
-              </select>
+            <label className="grid gap-2 text-sm font-semibold text-ink sm:col-span-2">
+              <span>Lokasi (opsional)</span>
+              <input className={inputClass} value={payload.location ?? ""}
+                placeholder="Contoh: Lombok, Nusa Tenggara Barat"
+                onChange={(event)=>setField("location", event.target.value)}/>
             </label>
+            <fieldset className="grid gap-3 sm:col-span-2">
+              <legend className="text-sm font-semibold text-ink">Kategori List Trip (bisa lebih dari satu)</legend>
+              <p className="text-xs text-ink-muted">Pilih kategori yang sesuai. Kategori baru dikelola pada menu admin.</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => {
+                  const checked = categoriesForTrip(payload).includes(cat.slug);
+                  return (
+                    <label key={cat.id} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-semibold ${checked ? "border-primary bg-primary/30" : "border-ink/15 bg-white"}`}>
+                      <input type="checkbox" checked={checked} disabled={!cat.isActive && !checked}
+                        onChange={(event) => {
+                          const current = categoriesForTrip(payload);
+                          const next = event.target.checked
+                            ? [...current, cat.slug]
+                            : current.filter((item) => item !== cat.slug);
+                          if (!next.length) { setError("Pilih minimal satu kategori."); return; }
+                          updatePayload((item) => ({
+                            ...item, categories: next,
+                            category: next[0],
+                          }));
+                        }} className="h-4 w-4 accent-[#064e4f]"/>
+                      {cat.name}
+                    </label>
+                  );
+                })}
+              </div>
+              <Link href="/admin/trip-categories" className="w-fit text-sm font-bold text-ink underline underline-offset-4">
+                Kelola kategori
+              </Link>
+            </fieldset>
             <label className="grid gap-2 text-sm font-semibold text-ink sm:col-span-2">
               <span>Deskripsi</span>
               <textarea
@@ -901,6 +919,64 @@ export function CatalogEditor({
                 Belum ada highlight discount pada trip ini.
               </p>
             ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="eyebrow">Pilihan jalur</p>
+              <h2 className="mt-2 font-serif text-3xl tracking-[-0.04em] text-ink">Jalur trip (opsional)</h2>
+            </div>
+            <button type="button" className={smallButtonClass}
+              onClick={() => updatePayload((current) => ({
+                ...current, routes: [
+                  ...(current.routes ?? []),
+                  { id: `route-${crypto.randomUUID()}`, name: "", description: "", active: true },
+                ],
+              }))}>
+              <Plus aria-hidden="true" className="mr-1 h-4 w-4"/> Tambah jalur
+            </button>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            Contoh: Via Sembalun, Via Torean, Via Senaru. Jika kosong, popup tidak menampilkan pilihan jalur.
+          </p>
+          <div className="mt-5 grid gap-4">
+            {(payload.routes ?? []).map((route,index) => (
+              <div key={route.id} className="grid gap-3 rounded-2xl border border-ink/15 bg-paper/50 p-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-sm font-semibold text-ink">
+                  Nama jalur
+                  <input className={inputClass} value={route.name} placeholder="Via Sembalun"
+                    onChange={(event)=>updatePayload((current)=>({
+                      ...current, routes:(current.routes ?? []).map((item,i)=>
+                        i===index?{...item,name:event.target.value}:item),
+                    }))}/>
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-ink">
+                  Deskripsi singkat
+                  <input className={inputClass} value={route.description} placeholder="Rute pendakian..."
+                    onChange={(event)=>updatePayload((current)=>({
+                      ...current, routes:(current.routes ?? []).map((item,i)=>
+                        i===index?{...item,description:event.target.value}:item),
+                    }))}/>
+                </label>
+                <div className="flex flex-wrap items-center justify-between gap-4 sm:col-span-2">
+                  <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink">
+                    <input type="checkbox" className="h-4 w-4 accent-[#064e4f]" checked={route.active}
+                      onChange={(event)=>updatePayload((current)=>({
+                        ...current, routes:(current.routes ?? []).map((item,i)=>
+                          i===index?{...item,active:event.target.checked}:item),
+                      }))}/>
+                    Jalur aktif
+                  </label>
+                  <button type="button" className={smallButtonClass}
+                    onClick={()=>updatePayload((current)=>({
+                      ...current,routes:(current.routes ?? []).filter((_,i)=>i!==index),
+                    }))}><Trash2 className="mr-1 h-4 w-4" aria-hidden="true"/> Hapus jalur</button>
+                </div>
+              </div>
+            ))}
+            {!payload.routes?.length ? <p className="rounded-xl border border-dashed border-ink/20 p-5 text-sm text-ink-muted">Belum ada pilihan jalur. Trip tetap dapat dipublikasikan dan ditanyakan via WhatsApp.</p> : null}
           </div>
         </section>
 

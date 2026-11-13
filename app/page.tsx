@@ -6,22 +6,20 @@ import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
 import { SiteHeader } from "@/components/site/site-header";
 import { heroImages } from "@/data/trip-images";
 import {
-  getCatalogMonthsFromDestinations,
   getPublishedDestinations,
 } from "@/services/catalog";
 import { DestinationCard } from "@/components/catalog/destination-card";
+import { ListTripSection } from "@/components/catalog/list-trip-section";
+import { getPublicTripCategories } from "@/services/trip-categories";
 import { getDestinationHighlights } from "@/lib/catalog-utils";
 
 export default async function HomePage() {
   const destinations = await getPublishedDestinations();
-  const catalogMonths = getCatalogMonthsFromDestinations(destinations);
+  const tripCategories = await getPublicTripCategories();
   const activeHighlights = destinations.filter(
     (destination) => getDestinationHighlights(destination).length > 0,
   );
-  const fallbackFeatured = destinations.slice(0, 3);
-  const featured = activeHighlights.length
-    ? activeHighlights
-    : fallbackFeatured;
+  const featured = activeHighlights;
 
   return (
     <main className="landing-surface">
@@ -31,11 +29,12 @@ export default async function HomePage() {
           tagline="Explore More, Live More"
           title="Temukan Perjalananmu"
           description="Jelajahi berbagai pilihan perjalanan E-GOTO, temukan destinasi favoritmu, dan lihat jadwal trip yang tersedia."
-          ctaText="Lihat Katalog Trip"
+          ctaText="Jelajahi List Trip"
+          ctaHref="#list-trip"
           images={heroImages}
         />
         <a
-          href="#monthly-catalog"
+          href="#list-trip"
           className="absolute bottom-7 left-1/2 z-20 hidden -translate-x-1/2 items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:flex"
         >
           Scroll untuk menjelajah
@@ -43,57 +42,18 @@ export default async function HomePage() {
         </a>
       </section>
 
-      <section
-        id="monthly-catalog"
-        className="relative isolate overflow-hidden border-b border-ink/10 bg-paper/78 px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
-      >
-        <div className="relative mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-          <div>
-            <p className="eyebrow">Arah perjalanan</p>
-            <h2 className="mt-4 max-w-lg text-balance font-serif text-5xl leading-[0.95] tracking-[-0.055em] text-ink sm:text-6xl">
-              Satu bulan. Banyak kemungkinan.
-            </h2>
-            <p className="mt-5 max-w-md text-base leading-7 text-ink-muted">
-              Pilih konteks bulan untuk melihat destination dengan tanggal
-              keberangkatan yang tersedia.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {catalogMonths.map((month, index) => (
-              <Link
-                key={month.key}
-                href={`/catalog?month=${month.key}`}
-                className="group min-h-40 rounded-[1.25rem] border border-ink/10 bg-white p-5 text-ink transition-[transform,background-color,border-color,color] duration-200 ease-out hover:-translate-y-1 hover:border-primary hover:bg-primary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <span className="text-xs font-bold uppercase tracking-[0.16em] text-ink-muted transition-colors duration-200 group-hover:text-ink/70">
-                  Katalog {String(index + 10).padStart(2, "0")}
-                </span>
-                <span className="mt-10 block font-serif text-2xl tracking-[-0.035em]">
-                  {month.label}
-                </span>
-                <ArrowUpRight
-                  className="mt-5 h-5 w-5 text-ink-muted transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
-                  aria-hidden="true"
-                />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ListTripSection destinations={destinations} categories={tripCategories} />
 
+      {activeHighlights.length ? (
       <section className="bg-paper/35 px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
         <div className="mx-auto max-w-[1440px]">
           <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-xl">
               <p className="eyebrow">
-                {activeHighlights.length
-                  ? "Highlight discount"
-                  : "Destination collection"}
+                Highlight discount
               </p>
               <h2 className="mt-4 text-balance font-serif text-5xl leading-[0.95] tracking-[-0.055em] text-ink sm:text-6xl">
-                {activeHighlights.length
-                  ? "Trip pilihan dengan harga spesial."
-                  : "Tempat yang layak dituju."}
+                Trip pilihan dengan harga spesial.
               </h2>
               {activeHighlights.length ? (
                 <p className="mt-5 max-w-md text-base leading-7 text-ink-muted">
@@ -120,6 +80,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       <section className="bg-ink px-5 py-20 text-white sm:px-8 sm:py-28 lg:px-12">
         <div className="mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">

@@ -57,6 +57,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250001_secure_date_scoped_voucher.sql
       - name: Apply catalog public-read security migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610250002_protect_catalog_drafts.sql
+      - name: Apply dynamic trip categories migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202611130001_trip_categories.sql
+      - name: Verify category RLS and CRUD grants
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_trip_categories.sql
       - name: Verify access, quota and pricing
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/isolated_assertions.sql
       - name: Apply legacy voucher RPC cutover (post-deploy migration)

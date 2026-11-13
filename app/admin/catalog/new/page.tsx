@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/services/auth";
 import { CatalogEditor } from "@/components/admin/catalog-editor";
+import { getAdminTripCategories } from "@/services/trip-categories";
 import type { CatalogRecord, TripDestination } from "@/types/catalog";
 
 function blankDestination(monthKey: string): TripDestination {
@@ -11,10 +12,13 @@ function blankDestination(monthKey: string): TripDestination {
     slug: `destination-baru-${Date.now()}`,
     name: "Destination baru",
     category: "mountain",
+    categories: ["mountain"],
+    routes: [],
+    location: "",
     duration: "2 Hari 1 Malam",
     description: "",
     coverImage: {
-      src: "/images/tumpak sewu.avif",
+      src: "",
       alt: "Gambar destination",
       sortOrder: 1,
     },
@@ -53,6 +57,7 @@ export default async function NewCatalogPage({
     ? month!
     : new Date().toISOString().slice(0, 7);
   const payload = blankDestination(monthKey);
+  const categories = await getAdminTripCategories();
   const record: CatalogRecord = {
     id: payload.id,
     slug: payload.slug,
@@ -79,7 +84,7 @@ export default async function NewCatalogPage({
           Buat trip baru.
         </h1>
         <div className="mt-10">
-          <CatalogEditor record={record} isNew />
+          <CatalogEditor record={record} categories={categories} isNew />
         </div>
       </div>
     </main>
