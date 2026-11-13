@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/services/auth";
-import { CatalogEditor } from "@/components/admin/catalog-editor";
-import { getAdminTripCategories } from "@/services/trip-categories";
-import type { CatalogRecord } from "@/types/catalog";
-import { createBlankMasterTrip } from "@/lib/trip-drafts";
+import { ListTripEditor } from "@/components/admin/list-trip-editor";
+import { getAdminListTripCategories } from "@/services/list-trip-categories";
+import type { ListTripRecord } from "@/types/list-trip";
+import { newListTrip } from "@/lib/list-trip-validation";
 
 export default async function NewTripPage() {
   await requireAdmin(["ADMIN", "EDITOR"]);
-  const payload = createBlankMasterTrip();
-  const categories = await getAdminTripCategories();
-  const record: CatalogRecord = {
+  const payload = newListTrip();
+  const categories = await getAdminListTripCategories();
+  const record: ListTripRecord = {
     id: payload.id,
     slug: payload.slug,
     status: "draft",
@@ -18,7 +18,6 @@ export default async function NewTripPage() {
     published: null,
     draftVersion: 0,
     publishedVersion: 0,
-    publishedAt: null,
     updatedAt: payload.updatedAt,
   };
   return (
@@ -36,7 +35,7 @@ export default async function NewTripPage() {
           Tambah Master Trip dan jalur.
         </h1>
         <div className="mt-10">
-          <CatalogEditor record={record} categories={categories} isNew mode="trip" />
+          <ListTripEditor record={record} categories={categories} isNew />
         </div>
       </div>
     </main>
