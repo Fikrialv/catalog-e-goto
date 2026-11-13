@@ -47,6 +47,7 @@ export function getDiscountedPriceAmount(
   price: PriceOption,
   offer: HighlightOffer,
 ) {
+  if (price.id !== offer.priceId) return price.amount;
   if (offer.discountType === "percentage" && offer.discountValue) {
     return roundRupiah(price.amount * (1 - offer.discountValue / 100));
   }
@@ -57,7 +58,7 @@ export function getDiscountedPriceAmount(
 }
 
 export function appliesToAllDeparturePoints(offer: HighlightOffer) {
-  return Boolean(offer.discountType && offer.discountValue);
+  return false; // Promotions target a specific price option / meeting point.
 }
 
 export function roundRupiah(amount: number) {

@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS public.trip_categories (
 );
 INSERT INTO public.trip_categories (id,slug,name,sort_order,is_active)
 VALUES ('mountain','mountain','Gunung',1,true),
-       ('beach_waterfall','beach_waterfall','Pantai & Air Terjun',2,true)
+       ('beach_waterfall','beach_waterfall','Pantai & Air Terjun (legacy)',4,false),
+       ('beach','beach','Pantai',2,true),
+       ('waterfall','waterfall','Air Terjun',3,true)
 ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE public.trip_categories ENABLE ROW LEVEL SECURITY;

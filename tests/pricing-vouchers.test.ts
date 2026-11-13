@@ -39,6 +39,23 @@ describe("date scoped promotion and voucher pricing", () => {
     expect(regular.finalPrice).toBe(trip.prices[0].amount);
   });
 
+  it("limits promotion to its specific meeting point and departure", () => {
+    const trip = fixture();
+    const base = trip.prices[0];
+    const other = { ...base, id: "other-meeting", label: "Surabaya", amount: base.amount + 100000, sortOrder: 2 };
+    trip.prices.push(other);
+    expect(getTripPriceBreakdown(trip, "oct-10", base.id).promotionDiscount).toBe(50000);
+    expect(getTripPriceBreakdown(trip, "oct-10", other.id).promotionDiscount).toBe(0);
+    expect(getTripPriceBreakdown(trip, "nov-07", base.id).promotionDiscount).toBe(0);
+  });
+
+  it("rejects published promotions for draft/unavailable departures", () => {
+    const trip = fixture();
+    trip.schedules[0].availabilityStatus = "full";
+    expect(() => getTripPriceBreakdown(trip, "oct-10", trip.prices[0].id)).toThrow();
+    expect(getTripPriceBreakdown(trip, "nov-07", trip.prices[0].id).promotionDiscount).toBe(0);
+  });
+
   it("stacks voucher after applicable date discount without going negative", () => {
     const trip = fixture();
     const priceId = trip.prices[0].id;

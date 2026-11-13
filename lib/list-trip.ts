@@ -8,6 +8,13 @@ export function categoriesForTrip(trip: Pick<TripDestination,"category" | "categ
   return trip.categories?.length ? normalizeTripCategories(trip.categories) : [trip.category];
 }
 
+/** Expand legacy combined tag for public display only, preserving stored catalog. */
+export function publicCategoriesForTrip(trip: Pick<TripDestination,"category" | "categories">): string[] {
+  return normalizeTripCategories(categoriesForTrip(trip).flatMap(
+    slug => slug === "beach_waterfall" ? ["beach","waterfall"] : [slug],
+  ));
+}
+
 export function filterListTrips<T extends TripDestination>(
   trips: T[],
   category: string,
@@ -15,7 +22,7 @@ export function filterListTrips<T extends TripDestination>(
 ): T[] {
   const needle = query.trim().toLocaleLowerCase("id");
   return trips.filter((trip) =>
-    (category === "all" || categoriesForTrip(trip).includes(category)) &&
+    (category === "all" || publicCategoriesForTrip(trip).includes(category)) &&
     (!needle || [trip.name, trip.location ?? "", trip.description].some(
       (text) => text.toLocaleLowerCase("id").includes(needle),
     ))

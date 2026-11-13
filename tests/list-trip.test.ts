@@ -3,6 +3,7 @@ import { clone, normalizeDestination } from "@/lib/catalog-utils";
 import { destinations } from "@/data/catalog";
 import {
   categoriesForTrip,
+  publicCategoriesForTrip,
   filterListTrips,
   buildTripInquiryMessage,
   normalizeTripCategories,
@@ -44,6 +45,20 @@ describe("list trip discovery", () => {
     const legacy = {...trip(),categories: undefined};
     expect(categoriesForTrip(legacy)).toEqual(["mountain"]);
     expect(normalizeTripCategories(["mountain","mountain","lintas"])).toEqual(["mountain","lintas"]);
+  });
+
+  it("displays legacy combined beach_waterfall as independent beach and waterfall tags", () => {
+    const legacy = { ...trip(), category: "beach_waterfall", categories: undefined };
+    expect(categoriesForTrip(legacy)).toEqual(["beach_waterfall"]);
+    expect(publicCategoriesForTrip(legacy)).toEqual(["beach", "waterfall"]);
+    expect(filterListTrips([legacy], "beach", "")).toHaveLength(1);
+    expect(filterListTrips([legacy], "waterfall", "")).toHaveLength(1);
+  });
+
+  it("respects explicit tags instead of automatically adding another category", () => {
+    const destination = { ...trip(), category: "beach_waterfall", categories: ["beach"] };
+    expect(publicCategoriesForTrip(destination)).toEqual(["beach"]);
+    expect(filterListTrips([destination], "waterfall", "")).toHaveLength(0);
   });
 
   it("builds inquiry including route but without claiming price, quota or available dates", () => {
