@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { ListTripSection } from "@/components/catalog/list-trip-section";
-import { getPublishedDestinations } from "@/services/catalog";
-import { getPublicTripCategories } from "@/services/trip-categories";
+import { getPublicListTrips } from "@/services/list-trips";
+import { getPublicListTripCategories } from "@/services/list-trip-categories";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default async function TripsPage() {
   const [destinations, categories] = await Promise.all([
-    getPublishedDestinations(),
-    getPublicTripCategories(),
+    getPublicListTrips(),
+    getPublicListTripCategories(),
   ]);
   return (
     <main className="landing-surface min-h-screen">
