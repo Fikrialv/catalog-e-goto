@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clone } from "@/lib/catalog-utils";
+import { clone, normalizeDestination } from "@/lib/catalog-utils";
 import { destinations } from "@/data/catalog";
 import {
   categoriesForTrip,
@@ -30,6 +30,14 @@ describe("list trip discovery", () => {
     expect(filterListTrips(source, "mountain", "")).toHaveLength(2);
     expect(filterListTrips(source, "all", "rinjani")).toHaveLength(1);
     expect(filterListTrips(source, "all", "").map(x=>x.id)).toEqual(["rinjani","bromo"]);
+  });
+
+  it("renders the existing published beach_waterfall trip without crashing homepage", () => {
+    const existing = destinations.find((item) => item.category === "beach_waterfall");
+    expect(existing).toBeDefined();
+    if (!existing) throw new Error("Legacy published category fixture missing");
+    expect(() => parseDestinationPayload(existing)).not.toThrow();
+    expect(() => normalizeDestination(existing, "published")).not.toThrow();
   });
 
   it("keeps legacy categories accessible without migrations to old payloads", () => {
