@@ -10,6 +10,7 @@ import { VoucherRedemption } from "@/components/catalog/voucher-redemption";
 import { ItineraryTimeline } from "@/components/catalog/itinerary-timeline";
 import {
   getDestinationHighlights,
+  isUpcomingAvailableSchedule,
 } from "@/lib/catalog-utils";
 import { getTripPriceBreakdown, getApplicablePromotion } from "@/lib/pricing";
 import { buildTripInquiryMessage } from "@/lib/list-trip";
@@ -85,7 +86,7 @@ export function TripDetail({
         )
       : null) ?? null;
   const publishedSchedules = destination.schedules.filter(
-    (schedule) => schedule.publicationStatus === "published",
+    (schedule) => isUpcomingAvailableSchedule(schedule),
   );
   const [selectedScheduleId, setSelectedScheduleId] = useState(
     (requestedHighlight &&

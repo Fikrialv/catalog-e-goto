@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
-import type { CatalogMonth, Category, TripDestination } from "@/types/catalog";
+import type { CatalogMonth, Category, TripCategory, TripDestination } from "@/types/catalog";
 import { categoryLabel, formatMonthLabel } from "@/lib/format";
 import { MonthSelector } from "@/components/catalog/month-selector";
 import { DestinationCard } from "@/components/catalog/destination-card";
@@ -16,6 +16,7 @@ export function CatalogExplorer({
   initialDuration,
   initialDestinations,
   months,
+  categories,
 }: {
   initialMonth: string;
   initialCategory: Category | "all";
@@ -23,6 +24,7 @@ export function CatalogExplorer({
   initialDuration: string;
   initialDestinations: TripDestination[];
   months: CatalogMonth[];
+  categories: TripCategory[];
 }) {
   const { language } = useCustomerPreferences();
   const copy =
@@ -144,10 +146,9 @@ export function CatalogExplorer({
                   className="min-w-0 flex-1 appearance-none bg-transparent pr-6 text-sm font-semibold text-ink outline-none"
                 >
                   <option value="all">{copy.allCategories}</option>
-                  <option value="mountain">{categoryLabel("mountain")}</option>
-                  <option value="beach_waterfall">
-                    {categoryLabel("beach_waterfall")}
-                  </option>
+                  {categories.filter((item) => item.isActive && item.slug !== "beach_waterfall").map((item) => (
+                    <option key={item.slug} value={item.slug}>{item.name}</option>
+                  ))}
                 </select>
                 <ChevronDown
                   className="pointer-events-none absolute right-0 h-4 w-4 text-ink-muted"

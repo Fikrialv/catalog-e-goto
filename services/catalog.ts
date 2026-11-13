@@ -1,7 +1,8 @@
 import type { Category, TripDestination } from "@/types/catalog";
 import { formatMonthLabel } from "@/lib/format";
-import { monthKeyFromDate } from "@/lib/catalog-utils";
+import { catalogToday, isUpcomingAvailableSchedule, monthKeyFromDate } from "@/lib/catalog-utils";
 import { compareDestinationsByDeparture } from "@/lib/catalog-utils";
+import { publicCategoriesForTrip } from "@/lib/list-trip";
 import { unstable_cache } from "next/cache";
 import {
   getPublicCatalogRepository,
@@ -13,6 +14,7 @@ const getCachedPublishedDestinations = unstable_cache(
   { revalidate: 30, tags: ["egoto-public-catalog"] },
 );
 
+/** Master trip inventory for public discovery, regardless of schedule. */
 export async function getPublishedDestinations(): Promise<TripDestination[]> {
   return getCachedPublishedDestinations();
 }
@@ -53,18 +55,17 @@ export function getMonthlyDestinationsFromDestinations(
     search?: string;
     duration?: string;
   },
+  today = catalogToday(),
 ) {
   const normalizedSearch = search?.trim().toLowerCase();
 
   return destinations
     .filter((destination) => {
       const monthSchedules = destination.schedules.filter(
-        (schedule) =>
-          schedule.publicationStatus === "published" &&
-          monthKeyFromDate(schedule.startDate) === monthKey,
+        (schedule) => isUpcomingAvailableSchedule(schedule, today) && monthKeyFromDate(schedule.startDate) === monthKey,
       );
       const matchesCategory =
-        !category || category === "all" || destination.category === category;
+        !category || category === "all" || publicCategoriesForTrip(destination).includes(category);
       const matchesSearch =
         !normalizedSearch ||
         destination.name.toLowerCase().includes(normalizedSearch);
@@ -73,6 +74,7 @@ export function getMonthlyDestinationsFromDestinations(
         duration === "all" ||
         destination.duration.startsWith(duration);
       return (
+        destination.publicationStatus === "published" &&
         monthSchedules.length > 0 &&
         matchesCategory &&
         matchesSearch &&
@@ -83,7 +85,7 @@ export function getMonthlyDestinationsFromDestinations(
       ...destination,
       schedules: destination.schedules.filter(
         (schedule) =>
-          schedule.publicationStatus === "published" &&
+          isUpcomingAvailableSchedule(schedule, today) &&
           monthKeyFromDate(schedule.startDate) === monthKey,
       ),
     }))
@@ -92,11 +94,12 @@ export function getMonthlyDestinationsFromDestinations(
 
 export function getCatalogMonthsFromDestinations(
   destinations: TripDestination[],
+  today = catalogToday(),
 ) {
   const keys = new Set(
-    destinations.flatMap((destination) =>
+    destinations.filter((destination) => destination.publicationStatus === "published").flatMap((destination) =>
       destination.schedules
-        .filter((schedule) => schedule.publicationStatus === "published")
+        .filter((schedule) => isUpcomingAvailableSchedule(schedule, today))
         .map((schedule) => monthKeyFromDate(schedule.startDate)),
     ),
   );

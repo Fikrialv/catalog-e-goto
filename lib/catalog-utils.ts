@@ -14,6 +14,22 @@ export function nowIso() {
   return new Date().toISOString();
 }
 
+/** Date comparisons use the business timezone, not the server's UTC date. */
+export function catalogToday(): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+}
+
+export function isUpcomingAvailableSchedule(
+  schedule: TripDestination["schedules"][number],
+  today = catalogToday(),
+): boolean {
+  return schedule.publicationStatus === "published" &&
+    schedule.availabilityStatus === "available" &&
+    schedule.startDate >= today;
+}
+
 export function monthKeyFromDate(startDate: string) {
   return startDate.slice(0, 7);
 }

@@ -11,6 +11,7 @@ import {
   getPublishedDestinations,
 } from "@/services/catalog";
 import type { Category } from "@/types/catalog";
+import { getPublicTripCategories } from "@/services/trip-categories";
 
 export const metadata: Metadata = {
   title: "Katalog Trip | E-GOTO",
@@ -31,7 +32,7 @@ export default async function CatalogPage({
   const search = typeof params.search === "string" ? params.search : "";
   const duration =
     typeof params.duration === "string" ? params.duration : "all";
-  const publishedDestinations = await getPublishedDestinations();
+  const [publishedDestinations, categories] = await Promise.all([getPublishedDestinations(), getPublicTripCategories()]);
   const months = getCatalogMonthsFromDestinations(publishedDestinations);
   const month = months.some((item) => item.key === requestedMonth)
     ? requestedMonth
@@ -66,13 +67,14 @@ export default async function CatalogPage({
         initialMonth={
           months.some((item) => item.key === month)
             ? month
-            : (months[0]?.key ?? "2026-10")
+            : (months[0]?.key ?? "")
         }
         initialCategory={category}
         initialSearch={search}
         initialDuration={duration}
         initialDestinations={destinations}
         months={months}
+        categories={categories}
       />
     </main>
   );

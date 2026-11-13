@@ -31,11 +31,11 @@ describe("E-GOTO UI catalog data", () => {
 
   it("shows monthly inventory only for published departures", async () => {
     expect(
-      getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-10" }).map(
+      getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-10" }, "2026-10-01").map(
         (destination) => destination.slug,
       ),
     ).toHaveLength(5);
-    expect(getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-12" })).toEqual([]);
+    expect(getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-12" }, "2026-10-01")).toEqual([]);
   });
 
   it("filters the prototype catalog by category and search", async () => {
@@ -43,10 +43,10 @@ describe("E-GOTO UI catalog data", () => {
       getMonthlyDestinationsFromDestinations(destinations, {
         monthKey: "2026-11",
         category: "mountain",
-      }),
+      }, "2026-10-01"),
     ).toHaveLength(4);
     expect(
-      getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-11", search: "CMC" })
+      getMonthlyDestinationsFromDestinations(destinations, { monthKey: "2026-11", search: "CMC" }, "2026-10-01")
         .length,
     ).toBe(1);
   });
@@ -61,7 +61,7 @@ describe("E-GOTO UI catalog data", () => {
     });
 
     expect(
-      getCatalogMonthsFromDestinations(withDecember).map((month) => month.key),
+      getCatalogMonthsFromDestinations(withDecember, "2026-10-01").map((month) => month.key),
     ).toEqual(["2026-10", "2026-11", "2026-12"]);
   });
 
@@ -76,12 +76,12 @@ describe("E-GOTO UI catalog data", () => {
     });
 
     expect(
-      getCatalogMonthsFromDestinations(withDraft).map((month) => month.key),
+      getCatalogMonthsFromDestinations(withDraft, "2026-10-01").map((month) => month.key),
     ).not.toContain("2026-12");
     expect(
       getMonthlyDestinationsFromDestinations(withDraft, {
         monthKey: "2026-12",
-      }),
+      }, "2026-10-01"),
     ).toEqual([]);
   });
 });

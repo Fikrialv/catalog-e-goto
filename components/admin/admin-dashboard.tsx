@@ -21,15 +21,16 @@ function getAdminMonthTabs(records: CatalogRecord[]) {
 export function AdminDashboard({
   records,
   canEdit,
+  mode = "trips",
 }: {
   records: CatalogRecord[];
   canEdit: boolean;
+  mode?: "trips" | "schedules";
 }) {
   const router = useRouter();
   const monthTabs = getAdminMonthTabs(records);
   const [selectedMonth, setSelectedMonth] = useState(monthTabs[0]?.key ?? "");
-  const filteredRecords = records.filter((record) =>
-    !record.draft.schedules.length ||
+  const filteredRecords = mode === "trips" ? records : records.filter((record) =>
     record.draft.schedules.some(
       (schedule) => monthKeyFromDate(schedule.startDate) === selectedMonth,
     ),
@@ -53,14 +54,14 @@ export function AdminDashboard({
             id="admin-destination-list"
             className="mt-2 font-serif text-3xl tracking-[-0.04em] text-ink"
           >
-            {filteredRecords.length} destination
+            {filteredRecords.length} {mode === "trips" ? "trip" : "trip terjadwal"}
           </h2>
         </div>
         <p className="text-sm text-ink-muted">
-          Draft tersimpan terpisah dari public
+          {mode === "trips" ? "Semua trip termasuk tanpa jadwal" : "Atur jadwal melalui editor trip"}
         </p>
       </div>
-      <div
+      {mode === "schedules" ? <div
         className="mt-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"
         aria-label="Pilih bulan untuk mengelola katalog"
@@ -77,7 +78,7 @@ export function AdminDashboard({
             {month.label}
           </button>
         ))}
-      </div>
+      </div> : null}
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {filteredRecords.map((record, index) => (
           <article
@@ -106,7 +107,7 @@ export function AdminDashboard({
               <span>Draft v{record.draftVersion}</span>
               <span>Public v{record.publishedVersion}</span>
               <span>
-                Updated {new Date(record.updatedAt).toLocaleDateString("id-ID")}
+                {mode === "schedules" ? `${record.draft.schedules.filter((s) => monthKeyFromDate(s.startDate) === selectedMonth).length} jadwal bulan ini` : `Updated ${new Date(record.updatedAt).toLocaleDateString("id-ID")}`}
               </span>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
@@ -116,7 +117,7 @@ export function AdminDashboard({
                   className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-white hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <FilePenLine className="h-4 w-4" aria-hidden="true" />
-                  Edit
+                  {mode === "schedules" ? "Kelola jadwal" : "Edit trip"}
                 </Link>
               ) : null}
               {record.published ? (
@@ -146,7 +147,7 @@ export function AdminDashboard({
       {!filteredRecords.length ? (
         <div className="mt-6 rounded-[1.35rem] border border-dashed border-ink/20 bg-white px-6 py-12 text-center">
           <p className="font-serif text-2xl tracking-[-0.03em] text-ink">
-            Belum ada data untuk bulan ini.
+            {mode === "schedules" ? "Belum ada jadwal pada bulan ini." : "Belum ada trip."}
           </p>
           <p className="mt-2 text-sm text-ink-muted">
             Tambahkan jadwal dengan tanggal pada bulan yang dipilih melalui menu
