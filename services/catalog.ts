@@ -1,6 +1,6 @@
 import type { Category, TripDestination } from "@/types/catalog";
 import { formatMonthLabel } from "@/lib/format";
-import { catalogToday, isUpcomingAvailableSchedule, monthKeyFromDate } from "@/lib/catalog-utils";
+import { catalogToday, isUpcomingAvailableSchedule, monthKeyFromDate, upcomingCatalogMonths } from "@/lib/catalog-utils";
 import { compareDestinationsByDeparture } from "@/lib/catalog-utils";
 import { publicCategoriesForTrip } from "@/lib/list-trip";
 import { unstable_cache } from "next/cache";
@@ -96,13 +96,14 @@ export function getCatalogMonthsFromDestinations(
   destinations: TripDestination[],
   today = catalogToday(),
 ) {
-  const keys = new Set(
-    destinations.filter((destination) => destination.publicationStatus === "published").flatMap((destination) =>
+  const keys = new Set<string>([
+    ...upcomingCatalogMonths(today),
+    ...destinations.filter((destination) => destination.publicationStatus === "published").flatMap((destination) =>
       destination.schedules
         .filter((schedule) => isUpcomingAvailableSchedule(schedule, today))
         .map((schedule) => monthKeyFromDate(schedule.startDate)),
     ),
-  );
+  ]);
   return [...keys].sort().map((key) => ({ key, label: formatMonthLabel(key) }));
 }
 
