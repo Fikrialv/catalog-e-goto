@@ -5,7 +5,8 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, MapPin, MessageCircle, Search, X } from "lucide-react";
-import type { TripCategory, TripDestination } from "@/types/catalog";
+import type { TripCategory } from "@/types/catalog";
+import type { ListTrip } from "@/types/list-trip";
 import { publicCategoriesForTrip, publicCategoryNamesForTrip, filterListTrips, buildTripInquiryMessage } from "@/lib/list-trip";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
@@ -16,13 +17,13 @@ export function ListTripSection({
   destinations,
   categories,
 }: {
-  destinations: TripDestination[];
+  destinations: ListTrip[];
   categories: TripCategory[];
 }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
-  const [selected, setSelected] = useState<TripDestination | null>(null);
+  const [selected, setSelected] = useState<ListTrip | null>(null);
   const enabledCategories = categories.filter((category) => category.isActive);
   const visibleCategories = enabledCategories.filter((category) =>
     destinations.some((trip) => publicCategoriesForTrip(trip).includes(category.slug))
@@ -150,7 +151,7 @@ export function ListTripSection({
 function TripInquiryModal({
   trip, onClose, categories,
 }: {
-  trip: TripDestination;
+  trip: ListTrip;
   onClose: () => void;
   categories: TripCategory[];
 }) {
