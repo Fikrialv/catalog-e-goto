@@ -3,13 +3,14 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { requireAdmin } from "@/services/auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import type { CatalogRecord } from "@/types/catalog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminSchedulesPage() {
   const user = await requireAdmin();
-  let records: Awaited<ReturnType<Awaited<ReturnType<typeof getCatalogRepository>>["listAdmin"]>> = [];
+  let records: CatalogRecord[] = [];
   let errorMessage = "";
   try {
     const repository = await getCatalogRepository();
