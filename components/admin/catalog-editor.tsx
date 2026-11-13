@@ -375,10 +375,12 @@ export function CatalogEditor({
   record,
   categories = [],
   isNew = false,
+  mode = "catalog",
 }: {
   record: CatalogRecord;
   categories?: TripCategory[];
   isNew?: boolean;
+  mode?: "trip" | "catalog";
 }) {
   const router = useRouter();
   const [payload, setPayload] = useState<TripDestination>(() =>
@@ -496,7 +498,7 @@ export function CatalogEditor({
       setDirty(false);
       setNotice("Draft tersimpan. Public belum berubah sampai Publish.");
       if (isNew && result.record?.id) {
-        router.replace(`/admin/catalog/${result.record.id}/edit`);
+        router.replace(mode === "trip" ? `/admin/trips/${result.record.id}/edit` : `/admin/catalog/${result.record.id}/edit`);
       } else {
         router.refresh();
       }
@@ -767,7 +769,7 @@ export function CatalogEditor({
           </div>
         </section>
 
-        <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
+        {mode === "catalog" ? (<section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="eyebrow">Homepage highlight</p>
@@ -920,7 +922,7 @@ export function CatalogEditor({
               </p>
             ) : null}
           </div>
-        </section>
+        </section>) : null}
 
         <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1045,7 +1047,7 @@ export function CatalogEditor({
           </div>
         </section>
 
-        <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
+        {mode === "catalog" ? (<section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="eyebrow">Price options</p>
@@ -1140,9 +1142,9 @@ export function CatalogEditor({
               </div>
             ))}
           </div>
-        </section>
+        </section>) : null}
 
-        <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
+        {mode === "catalog" ? (<section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="eyebrow">Departure schedules</p>
@@ -1349,7 +1351,7 @@ export function CatalogEditor({
               </p>
             ) : null}
           </div>
-        </section>
+        </section>) : null}
 
         <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
