@@ -71,11 +71,11 @@ export default async function AdminCatalogPage({
             </Link>
             <LogoutButton />
             <Link
-              href="/admin/trips/new"
+              href="/admin/catalog/new"
               className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-white hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
-              Trip baru
+              Katalog baru
             </Link>
           </div>
         </header>
