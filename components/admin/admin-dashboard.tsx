@@ -113,7 +113,7 @@ export function AdminDashboard({
             <div className="mt-5 flex flex-wrap gap-2">
               {canEdit ? (
                 <Link
-                  href={`/admin/catalog/${record.id}/edit?month=${selectedMonth}`}
+                  href={mode === "trips" ? `/admin/trips/${record.id}/edit` : `/admin/catalog/${record.id}/edit?month=${selectedMonth}`}
                   className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-white hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <FilePenLine className="h-4 w-4" aria-hidden="true" />
