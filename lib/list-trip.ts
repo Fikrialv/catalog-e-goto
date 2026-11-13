@@ -1,4 +1,4 @@
-import type { TripDestination } from "@/types/catalog";
+import type { TripCategory, TripDestination } from "@/types/catalog";
 
 export function normalizeTripCategories(categories: string[]): string[] {
   return [...new Set(categories.map((item) => item.trim().toLowerCase()).filter(Boolean))];
@@ -13,6 +13,23 @@ export function publicCategoriesForTrip(trip: Pick<TripDestination,"category" | 
   return normalizeTripCategories(categoriesForTrip(trip).flatMap(
     slug => slug === "beach_waterfall" ? ["beach","waterfall"] : [slug],
   ));
+}
+
+/** Print every category name rather than collapsing tags to an ambiguous "+1". */
+export function publicCategoryNamesForTrip(
+  trip: Pick<TripDestination, "category" | "categories">,
+  categories: TripCategory[],
+): string {
+  const categoryNames: Record<string, string> = {
+    mountain: "Gunung",
+    beach: "Pantai",
+    waterfall: "Air Terjun",
+  };
+  return publicCategoriesForTrip(trip).map((slug) =>
+    categories.find((category) => category.slug === slug)?.name ??
+    categoryNames[slug] ??
+    slug,
+  ).join(" · ");
 }
 
 export function filterListTrips<T extends TripDestination>(
