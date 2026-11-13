@@ -29,8 +29,8 @@ export default async function HomePage() {
           tagline="Explore More, Live More"
           title="Temukan Perjalananmu"
           description="Jelajahi berbagai pilihan perjalanan E-GOTO, temukan destinasi favoritmu, dan lihat jadwal trip yang tersedia."
-          ctaText="Jelajahi List Trip"
-          ctaHref="#list-trip"
+          ctaText="Lihat Semua List Trip"
+          ctaHref="/trips"
           images={heroImages}
         />
         <a
