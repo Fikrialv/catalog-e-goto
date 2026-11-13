@@ -108,6 +108,9 @@ export function CatalogExplorer({
               onSelect={selectMonth}
               months={months}
             />
+            <p role="status" aria-live="polite" className="mt-2 text-sm text-ink-muted">
+              {isPending ? "Memuat jadwal bulan terpilih..." : ""}
+            </p>
           </div>
         </div>
 
