@@ -51,7 +51,7 @@ export default async function AdminCatalogPage({
               {user.email} · {user.role} · Supabase Auth
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Link
               href="/admin/monitoring"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -59,6 +59,9 @@ export default async function AdminCatalogPage({
               <Activity className="h-4 w-4" aria-hidden="true" />
               Monitoring
             </Link>
+            {user.role === "ADMIN" ? (
+              <Link href="/admin/trip-categories" className="inline-flex min-h-11 items-center rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35">Kategori Trip</Link>
+            ) : null}
             <Link
               href="/admin/vouchers"
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ink/15 px-5 text-sm font-bold text-ink hover:border-ink/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"

@@ -18,10 +18,12 @@ type RedemptionResult = {
 export function VoucherRedemption({
   destination,
   price,
+  scheduleId,
   onRedeemed,
 }: {
   destination: TripDestination;
   price: PriceOption;
+  scheduleId: string;
   onRedeemed: (result: RedemptionResult | null) => void;
 }) {
   const { currency } = useCustomerPreferences();
@@ -40,6 +42,7 @@ export function VoucherRedemption({
           code,
           destinationSlug: destination.slug,
           priceId: price.id,
+          scheduleId,
           sessionId: getCatalogSessionId(),
         }),
       });

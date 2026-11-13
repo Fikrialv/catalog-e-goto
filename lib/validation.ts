@@ -32,22 +32,40 @@ function nearestApprovedHighlightDiscount(value: unknown) {
 
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Gunakan tanggal YYYY-MM-DD.");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Gunakan tanggal YYYY-MM-DD.")
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) &&
+      date.toISOString().slice(0, 10) === value;
+  }, "Tanggal kalender tidak valid.");
 const slug = z
   .string()
   .trim()
   .min(2, "Slug wajib diisi.")
   .max(120, "Slug terlalu panjang.")
   .regex(
-    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/,
     "Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung.",
   );
+
+const categorySlug = z.string().trim().regex(
+  /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  "Kategori harus menggunakan slug yang valid.",
+).max(80);
+const route = z.object({
+  id: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(500).default(""),
+  active: z.boolean().default(true),
+});
 
 const image = z.object({
   src: z.string().trim().min(1, "Source gambar wajib diisi."),
   alt: z.string().trim().min(3, "Alt text wajib diisi."),
   sortOrder: z.number().int().positive(),
 });
+
+const coverImage = image.extend({ src: z.string().trim() });
 
 const price = z.object({
   id: z.string().min(1),
@@ -106,10 +124,13 @@ export const destinationPayloadSchema = z
     id: z.string().min(1),
     slug,
     name: z.string().trim().min(2),
-    category: z.enum(["mountain", "beach_waterfall"]),
+    category: categorySlug,
+    categories: z.array(categorySlug).max(12).optional(),
+    routes: z.array(route).max(30).optional(),
+    location: z.string().trim().max(160).optional(),
     duration: z.string().trim().min(1),
     description: z.string().trim(),
-    coverImage: image,
+    coverImage,
     gallery: z.array(image),
     // Draft destinations may be incomplete while an admin is still entering package details.
     // Publication is blocked below until at least one valid price option exists.
@@ -126,14 +147,25 @@ export const destinationPayloadSchema = z
     publishedVersion: z.number().int().nonnegative().optional(),
   })
   .superRefine((value, context) => {
-    if (value.publicationStatus === "published" && value.prices.length < 1) {
-      context.addIssue({
-        code: "custom",
-        path: ["prices"],
-        message: "Minimal satu price option wajib diisi sebelum destinasi dipublikasikan.",
-      });
+    if (value.publicationStatus === "published" && !value.coverImage.src.trim()) {
+      context.addIssue({ code: "custom", path: ["coverImage", "src"],
+        message: "Upload cover gambar sebelum Publish." });
     }
-
+    // A Published inquiry trip can have no schedule or price.
+    // Booking and voucher APIs continue to enforce a valid published schedule and price.
+    if (value.categories && value.categories.length !== new Set(value.categories).size) {
+      context.addIssue({ code: "custom", path: ["categories"], message: "Kategori duplikat tidak diperbolehkan." });
+    }
+    const routeNames = new Set<string>();
+    const routeIds = new Set<string>();
+    for (const [index, item] of (value.routes ?? []).entries()) {
+      const name = item.name.toLocaleLowerCase("id");
+      if (routeNames.has(name) || routeIds.has(item.id)) {
+        context.addIssue({ code: "custom", path: ["routes", index], message: "Pilihan jalur harus unik." });
+      }
+      routeNames.add(name);
+      routeIds.add(item.id);
+    }
     const keys = new Set<string>();
     for (const item of value.schedules) {
       if (item.endDate && item.endDate < item.startDate) {

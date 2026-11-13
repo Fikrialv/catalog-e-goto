@@ -29,6 +29,7 @@ export function AdminDashboard({
   const monthTabs = getAdminMonthTabs(records);
   const [selectedMonth, setSelectedMonth] = useState(monthTabs[0]?.key ?? "");
   const filteredRecords = records.filter((record) =>
+    !record.draft.schedules.length ||
     record.draft.schedules.some(
       (schedule) => monthKeyFromDate(schedule.startDate) === selectedMonth,
     ),

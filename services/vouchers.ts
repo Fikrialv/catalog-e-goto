@@ -1,8 +1,5 @@
 import { createHmac } from "node:crypto";
-import {
-  getDiscountedPriceAmount,
-  getDestinationHighlights,
-} from "@/lib/catalog-utils";
+import { getTripPriceBreakdown } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeVoucherCode } from "@/lib/voucher-validation";
 import type { PriceOption, TripDestination } from "@/types/catalog";
@@ -92,29 +89,24 @@ export async function createVoucher(input: {
   if (error) throw error;
 }
 
-function priceAfterPromotion(destination: TripDestination, price: PriceOption) {
-  return getDestinationHighlights(destination).reduce(
-    (lowest, offer) =>
-      Math.min(lowest, getDiscountedPriceAmount(price, offer)),
-    price.amount,
-  );
-}
-
 export async function redeemVoucher(input: {
   code: string;
   destination: TripDestination;
   price: PriceOption;
   sessionId: string;
+  scheduleId: string;
 }) {
+  // Reject stale/unpublished/unavailable dates even if a client bypasses the form.
+  getTripPriceBreakdown(input.destination, input.scheduleId, input.price.id);
   const supabase = await createSupabaseServerClient();
   if (!supabase) throw new Error("Supabase belum dikonfigurasi.");
 
-  const { data, error } = await supabase.rpc("redeem_catalog_voucher", {
+  const { data, error } = await supabase.rpc("redeem_catalog_voucher_for_schedule", {
     p_voucher_id: hashCode(input.code),
     p_destination_id: input.destination.id,
     p_session_id: input.sessionId,
     p_price_id: input.price.id,
-    p_base_amount: priceAfterPromotion(input.destination, input.price),
+    p_schedule_id: input.scheduleId,
   });
 
   if (error) throw new Error(error.message);

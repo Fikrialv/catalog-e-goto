@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createVoucherSchema } from "@/lib/voucher-validation";
 import { getPublishedDestinations } from "@/services/catalog";
+import { isBookableTrip } from "@/lib/list-trip";
 import { getCurrentUser } from "@/services/auth";
 import { createVoucher } from "@/services/vouchers";
 
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
         { message: "Trip tidak ditemukan atau belum dipublikasikan." },
         { status: 400 },
       );
+    }
+
+    if (!isBookableTrip(destination)) {
+      return NextResponse.json({ message: "Trip inquiry belum memiliki jadwal dan harga yang tersedia untuk voucher." }, { status: 400 });
     }
 
     const lowestPrice = Math.min(

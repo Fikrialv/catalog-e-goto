@@ -35,6 +35,7 @@ export const redeemVoucherSchema = z.object({
   code: voucherCodeSchema,
   destinationSlug: z.string().min(2).max(120),
   priceId: z.string().min(1).max(160),
+  scheduleId: z.string().min(1).max(160),
   sessionId: z.string().uuid(),
 });
 

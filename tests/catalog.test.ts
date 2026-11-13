@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { destinations } from "@/data/catalog";
+import { formatScheduleCompact } from "@/lib/format";
 import {
   getCatalogMonthsFromDestinations,
   getMonthlyDestinationsFromDestinations,
 } from "@/services/catalog";
 
 describe("E-GOTO UI catalog data", () => {
+  it("formats cross-month and cross-year schedules without ambiguous day numbers", () => {
+    const base = destinations[0].schedules[0];
+    expect(formatScheduleCompact({ ...base, startDate: "2026-10-31", endDate: "2026-11-02" }))
+      .toBe("31 Okt – 2 Nov");
+    expect(formatScheduleCompact({ ...base, startDate: "2026-12-31", endDate: "2027-01-02" }))
+      .toBe("31 Des 2026 – 2 Jan 2027");
+  });
+
   it("keeps CMC departures inside the two active catalog months", () => {
     const cmc = destinations.find(
       (destination) => destination.slug === "cmc-pantai-3-warna-tumpak-sewu",

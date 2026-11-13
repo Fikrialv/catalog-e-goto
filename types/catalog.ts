@@ -1,4 +1,18 @@
-export type Category = "mountain" | "beach_waterfall";
+export type Category = string;
+export type TripCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+export type TripRoute = {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+};
+
 export type CatalogMonth = { key: string; label: string };
 export type PublicationStatus = "draft" | "published" | "archived";
 export type AvailabilityStatus = "available" | "full" | "closed" | "cancelled";
@@ -68,7 +82,10 @@ export type TripDestination = {
   id: string;
   slug: string;
   name: string;
-  category: Category;
+  category: Category; // Backward-compatible main category for existing catalogs
+  categories?: string[]; // Admin-managed, multi-category discovery labels
+  routes?: TripRoute[]; // Optional route choices, independent of booking schedules
+  location?: string; // Human-readable location for the inquiry popup
   duration: string;
   description: string;
   coverImage: DestinationImage;

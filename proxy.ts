@@ -51,10 +51,15 @@ export async function proxy(request: NextRequest) {
   if (path === "/admin/login" || path.startsWith("/api/auth/"))
     return NextResponse.next();
   const { response, claims } = await updateSupabaseSession(request);
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !claims) {
+    if (path.startsWith("/api/admin/")) {
+      return NextResponse.json(
+        { error: "Sesi admin tidak tersedia. Silakan login ulang." },
+        { status: isSupabaseConfigured ? 401 : 503 },
+      );
+    }
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
-  if (!claims) return NextResponse.redirect(new URL("/admin/login", request.url));
   return response;
 }
 

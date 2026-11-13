@@ -7,13 +7,15 @@ import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2 } from "lucide-react";
 import type {
   AvailabilityStatus,
   CatalogRecord,
+  TripCategory,
   HighlightOffer,
   ItineraryDay,
   PublicationStatus,
   TripDestination,
 } from "@/types/catalog";
-import { createChangeSummary, clone } from "@/lib/catalog-utils";
+import { createChangeSummary, clone, moveScheduleEndDate, nextUnusedScheduleDate } from "@/lib/catalog-utils";
 import { monthKeyFromDate } from "@/lib/catalog-utils";
+import { categoriesForTrip } from "@/lib/list-trip";
 import { formatMonthLabel } from "@/lib/format";
 
 const inputClass =
@@ -57,11 +59,11 @@ function movePlain<T>(items: T[], index: number, direction: -1 | 1) {
   return next;
 }
 
-function getScheduleMonthTabs(schedules: TripDestination["schedules"]) {
+function getScheduleMonthTabs(schedules: TripDestination["schedules"], selectedMonth: string) {
   const scheduleMonths = schedules.map((schedule) =>
     monthKeyFromDate(schedule.startDate),
   );
-  const keys = [...new Set([...scheduleMonths.filter(Boolean)])].sort();
+  const keys = [...new Set([...scheduleMonths.filter(Boolean), selectedMonth].filter(Boolean))].sort();
   return keys.map((key) => ({ key, label: formatMonthLabel(key) }));
 }
 
@@ -371,9 +373,11 @@ export function HighlightItineraryEditor({
 
 export function CatalogEditor({
   record,
+  categories = [],
   isNew = false,
 }: {
   record: CatalogRecord;
+  categories?: TripCategory[];
   isNew?: boolean;
 }) {
   const router = useRouter();
@@ -393,16 +397,13 @@ export function CatalogEditor({
   const [uploadingImage, setUploadingImage] = useState<"cover" | number | null>(
     null,
   );
-  const [pendingStorageDeletes, setPendingStorageDeletes] = useState<string[]>(
-    [],
-  );
   const summary = useMemo(
     () => createChangeSummary(record.published, payload),
     [payload, record.published],
   );
   const scheduleMonthTabs = useMemo(
-    () => getScheduleMonthTabs(payload.schedules),
-    [payload.schedules],
+    () => getScheduleMonthTabs(payload.schedules, selectedScheduleMonth),
+    [payload.schedules, selectedScheduleMonth],
   );
   const activeScheduleMonth = scheduleMonthTabs.some(
     (month) => month.key === selectedScheduleMonth,
@@ -466,93 +467,73 @@ export function CatalogEditor({
     }));
   }
 
-  function queueStorageDelete(src: string) {
-    if (!src.includes("/storage/v1/object/public/")) return;
-    setPendingStorageDeletes((current) =>
-      current.includes(src) ? current : [...current, src],
-    );
-  }
-
-  async function flushStorageDeletes() {
-    if (!pendingStorageDeletes.length) return 0;
-    const results = await Promise.all(
-      pendingStorageDeletes.map(async (src) => {
-        try {
-          const response = await fetch("/api/admin/upload", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ src, destinationId: payload.id }),
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      }),
-    );
-    const failed = pendingStorageDeletes.filter((_, index) => !results[index]);
-    setPendingStorageDeletes(failed);
-    return failed.length;
+  // Keep old Storage objects: a published snapshot may still reference them.
+  // Garbage collection must happen only after both draft and published snapshots
+  // have been checked for remaining references.
+  function queueStorageDelete() {
+    // Intentionally no physical deletion when only a draft image is changed.
   }
 
   async function saveDraft(event?: FormEvent) {
     event?.preventDefault();
+    if (saving || uploadingImage !== null) return;
     setSaving(true);
     setError("");
     setNotice("");
-    const response = await fetch(
-      isNew ? "/api/admin/catalog" : `/api/admin/catalog/${record.id}`,
-      {
-        method: isNew ? "POST" : "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          isNew
-            ? { action: "create", payload }
-            : { action: "save-draft", payload },
-        ),
-      },
-    );
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(result.error ?? "Draft gagal disimpan.");
+    try {
+      const response = await fetch(
+        isNew ? "/api/admin/catalog" : `/api/admin/catalog/${record.id}`,
+        {
+          method: isNew ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isNew ? { action: "create", payload } : { action: "save-draft", payload },
+          ),
+        },
+      );
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Draft gagal disimpan.");
+      setDirty(false);
+      setNotice("Draft tersimpan. Public belum berubah sampai Publish.");
+      if (isNew && result.record?.id) {
+        router.replace(`/admin/catalog/${result.record.id}/edit`);
+      } else {
+        router.refresh();
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Draft gagal disimpan. Coba ulang.");
+    } finally {
       setSaving(false);
-      return;
     }
-    const failedDeleteCount = await flushStorageDeletes();
-    setDirty(false);
-    setNotice(
-      failedDeleteCount
-        ? `Draft tersimpan, tetapi ${failedDeleteCount} asset lama belum terhapus dari storage.`
-        : "Draft tersimpan. Public belum berubah sampai Publish.",
-    );
-    setSaving(false);
-    if (isNew && result.record?.id)
-      router.replace(`/admin/catalog/${result.record.id}/edit`);
-    else router.refresh();
   }
 
   async function runAction(action: string) {
-    if (
-      ["publish", "unpublish", "archive", "restore", "duplicate"].includes(
-        action,
-      ) &&
-      !window.confirm(`Konfirmasi aksi ${action}?`)
-    )
+    if (saving || uploadingImage !== null) return;
+    if (dirty) {
+      setError("Ada perubahan belum disimpan. Klik Save draft, lalu ulangi aksi.");
       return;
+    }
+    if (
+      ["publish", "unpublish", "archive", "restore", "duplicate"].includes(action) &&
+      !window.confirm(`Konfirmasi aksi ${action}?`)
+    ) return;
     setSaving(true);
     setError("");
-    const response = await fetch(`/api/admin/catalog/${record.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload, confirmed: true }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) setError(result.error ?? "Aksi gagal.");
-    else {
+    try {
+      const response = await fetch(`/api/admin/catalog/${record.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, confirmed: true }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Aksi gagal.");
       setNotice(result.message ?? "Aksi berhasil.");
-      setDirty(false);
       router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Aksi gagal. Coba ulang.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function uploadImage(
@@ -560,38 +541,39 @@ export function CatalogEditor({
     target: "cover" | { galleryIndex: number },
   ) {
     if (!file) return;
-    const currentSrc =
-      target === "cover"
-        ? payload.coverImage.src
-        : payload.gallery[target.galleryIndex]?.src;
+    const currentSrc = target === "cover"
+      ? payload.coverImage.src
+      : payload.gallery[target.galleryIndex]?.src;
     setUploadingImage(target === "cover" ? "cover" : target.galleryIndex);
     setError("");
-    const formData = new FormData();
-    formData.set("file", file);
-    formData.set("destinationId", payload.id);
-    const response = await fetch("/api/admin/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) setError(result.error ?? "Upload gagal.");
-    else {
-      if (currentSrc && currentSrc !== result.src)
-        queueStorageDelete(currentSrc);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("destinationId", payload.id);
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || typeof result.src !== "string") {
+        throw new Error(result.error ?? "Upload gagal.");
+      }
+      if (currentSrc && currentSrc !== result.src) queueStorageDelete();
       if (target === "cover") {
         setField("coverImage", { ...payload.coverImage, src: result.src });
       } else {
         updatePayload((current) => ({
           ...current,
           gallery: current.gallery.map((image, index) =>
-            index === target.galleryIndex
-              ? { ...image, src: result.src }
-              : image,
+            index === target.galleryIndex ? { ...image, src: result.src } : image,
           ),
         }));
       }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Upload gagal. Coba ulang.");
+    } finally {
+      setUploadingImage(null);
     }
-    setUploadingImage(null);
   }
 
   function addPrice() {
@@ -647,14 +629,19 @@ export function CatalogEditor({
     }));
   }
   function addSchedule() {
+    const nextDate = nextUnusedScheduleDate(payload.schedules, activeScheduleMonth);
+    if (!nextDate) {
+      setError("Tidak ada tanggal kosong pada bulan ini. Pilih bulan lainnya.");
+      return;
+    }
     updatePayload((current) => ({
       ...current,
       schedules: [
         ...current.schedules,
         {
-          id: `${current.id}-schedule-${Date.now()}`,
+          id: `${current.id}-schedule-${crypto.randomUUID()}`,
           destinationId: current.id,
-          startDate: `${activeScheduleMonth}-01`,
+          startDate: nextDate,
           endDate: null,
           publicationStatus: "draft",
           availabilityStatus: "available",
@@ -674,7 +661,7 @@ export function CatalogEditor({
   }
 
   function removeGalleryImage(index: number) {
-    queueStorageDelete(payload.gallery[index]?.src ?? "");
+    queueStorageDelete();
     updatePayload((current) => ({
       ...current,
       gallery: ordered(removeItem(current.gallery, index)),
@@ -731,22 +718,41 @@ export function CatalogEditor({
                 className={inputClass}
               />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              <span>Kategori</span>
-              <select
-                value={payload.category}
-                onChange={(event) =>
-                  setField(
-                    "category",
-                    event.target.value as TripDestination["category"],
-                  )
-                }
-                className={inputClass}
-              >
-                <option value="mountain">Mountain</option>
-                <option value="beach_waterfall">Beach & Waterfall</option>
-              </select>
+            <label className="grid gap-2 text-sm font-semibold text-ink sm:col-span-2">
+              <span>Lokasi (opsional)</span>
+              <input className={inputClass} value={payload.location ?? ""}
+                placeholder="Contoh: Lombok, Nusa Tenggara Barat"
+                onChange={(event)=>setField("location", event.target.value)}/>
             </label>
+            <fieldset className="grid gap-3 sm:col-span-2">
+              <legend className="text-sm font-semibold text-ink">Kategori List Trip (bisa lebih dari satu)</legend>
+              <p className="text-xs text-ink-muted">Pilih kategori yang sesuai. Kategori baru dikelola pada menu admin.</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => {
+                  const checked = categoriesForTrip(payload).includes(cat.slug);
+                  return (
+                    <label key={cat.id} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-semibold ${checked ? "border-primary bg-primary/30" : "border-ink/15 bg-white"}`}>
+                      <input type="checkbox" checked={checked} disabled={!cat.isActive && !checked}
+                        onChange={(event) => {
+                          const current = categoriesForTrip(payload);
+                          const next = event.target.checked
+                            ? [...current, cat.slug]
+                            : current.filter((item) => item !== cat.slug);
+                          if (!next.length) { setError("Pilih minimal satu kategori."); return; }
+                          updatePayload((item) => ({
+                            ...item, categories: next,
+                            category: next[0],
+                          }));
+                        }} className="h-4 w-4 accent-[#064e4f]"/>
+                      {cat.name}
+                    </label>
+                  );
+                })}
+              </div>
+              <Link href="/admin/trip-categories" className="w-fit text-sm font-bold text-ink underline underline-offset-4">
+                Kelola kategori
+              </Link>
+            </fieldset>
             <label className="grid gap-2 text-sm font-semibold text-ink sm:col-span-2">
               <span>Deskripsi</span>
               <textarea
@@ -913,6 +919,64 @@ export function CatalogEditor({
                 Belum ada highlight discount pada trip ini.
               </p>
             ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-[1.35rem] border border-ink/10 bg-white p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="eyebrow">Pilihan jalur</p>
+              <h2 className="mt-2 font-serif text-3xl tracking-[-0.04em] text-ink">Jalur trip (opsional)</h2>
+            </div>
+            <button type="button" className={smallButtonClass}
+              onClick={() => updatePayload((current) => ({
+                ...current, routes: [
+                  ...(current.routes ?? []),
+                  { id: `route-${crypto.randomUUID()}`, name: "", description: "", active: true },
+                ],
+              }))}>
+              <Plus aria-hidden="true" className="mr-1 h-4 w-4"/> Tambah jalur
+            </button>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-ink-muted">
+            Contoh: Via Sembalun, Via Torean, Via Senaru. Jika kosong, popup tidak menampilkan pilihan jalur.
+          </p>
+          <div className="mt-5 grid gap-4">
+            {(payload.routes ?? []).map((route,index) => (
+              <div key={route.id} className="grid gap-3 rounded-2xl border border-ink/15 bg-paper/50 p-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-sm font-semibold text-ink">
+                  Nama jalur
+                  <input className={inputClass} value={route.name} placeholder="Via Sembalun"
+                    onChange={(event)=>updatePayload((current)=>({
+                      ...current, routes:(current.routes ?? []).map((item,i)=>
+                        i===index?{...item,name:event.target.value}:item),
+                    }))}/>
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-ink">
+                  Deskripsi singkat
+                  <input className={inputClass} value={route.description} placeholder="Rute pendakian..."
+                    onChange={(event)=>updatePayload((current)=>({
+                      ...current, routes:(current.routes ?? []).map((item,i)=>
+                        i===index?{...item,description:event.target.value}:item),
+                    }))}/>
+                </label>
+                <div className="flex flex-wrap items-center justify-between gap-4 sm:col-span-2">
+                  <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink">
+                    <input type="checkbox" className="h-4 w-4 accent-[#064e4f]" checked={route.active}
+                      onChange={(event)=>updatePayload((current)=>({
+                        ...current, routes:(current.routes ?? []).map((item,i)=>
+                          i===index?{...item,active:event.target.checked}:item),
+                      }))}/>
+                    Jalur aktif
+                  </label>
+                  <button type="button" className={smallButtonClass}
+                    onClick={()=>updatePayload((current)=>({
+                      ...current,routes:(current.routes ?? []).filter((_,i)=>i!==index),
+                    }))}><Trash2 className="mr-1 h-4 w-4" aria-hidden="true"/> Hapus jalur</button>
+                </div>
+              </div>
+            ))}
+            {!payload.routes?.length ? <p className="rounded-xl border border-dashed border-ink/20 p-5 text-sm text-ink-muted">Belum ada pilihan jalur. Trip tetap dapat dipublikasikan dan ditanyakan via WhatsApp.</p> : null}
           </div>
         </section>
 
@@ -1128,7 +1192,7 @@ export function CatalogEditor({
                     label="Mulai"
                     required
                     value={schedule.startDate}
-                    onChange={(value) =>
+                    onChange={(value) => {
                       updatePayload((current) => ({
                         ...current,
                         schedules: current.schedules.map((item, itemIndex) =>
@@ -1136,8 +1200,9 @@ export function CatalogEditor({
                             ? { ...item, startDate: value }
                             : item,
                         ),
-                      }))
-                    }
+                      }));
+                      if (value) setSelectedScheduleMonth(monthKeyFromDate(value));
+                    }}
                   />
                   <CalendarInput
                     label="Selesai (opsional)"
@@ -1231,20 +1296,31 @@ export function CatalogEditor({
                     <button
                       type="button"
                       className={smallButtonClass}
-                      onClick={() =>
+                      onClick={() => {
+                        const date = nextUnusedScheduleDate(
+                          payload.schedules,
+                          monthKeyFromDate(schedule.startDate),
+                          schedule.startDate,
+                        );
+                        if (!date) {
+                          setError("Bulan ini penuh. Pilih bulan lain untuk jadwal baru.");
+                          return;
+                        }
                         updatePayload((current) => ({
                           ...current,
                           schedules: [
                             ...current.schedules.slice(0, index + 1),
                             {
                               ...current.schedules[index],
-                              id: `${current.id}-schedule-${Date.now()}`,
+                              id: `${current.id}-schedule-${crypto.randomUUID()}`,
+                              startDate: date,
+                              endDate: moveScheduleEndDate(schedule.startDate, schedule.endDate, date),
                               publicationStatus: "draft",
                             },
                             ...current.schedules.slice(index + 1),
                           ],
-                        }))
-                      }
+                        }));
+                      }}
                     >
                       <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                       Duplikasi
@@ -1623,7 +1699,7 @@ export function CatalogEditor({
             </p>
           ) : null}
           <button
-            disabled={saving}
+            disabled={saving || uploadingImage !== null}
             className="mt-6 min-h-12 w-full rounded-full bg-ink px-5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             {saving ? "Menyimpan…" : "Save draft"}
@@ -1638,6 +1714,7 @@ export function CatalogEditor({
               </Link>
               <button
                 type="button"
+                disabled={saving || dirty || uploadingImage !== null}
                 onClick={() => runAction("publish")}
                 className="min-h-11 rounded-full bg-accent px-5 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >

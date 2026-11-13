@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/services/auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { CatalogEditor } from "@/components/admin/catalog-editor";
+import { getAdminTripCategories } from "@/services/trip-categories";
 
 export default async function EditCatalogPage({
   params,
@@ -17,6 +18,7 @@ export default async function EditCatalogPage({
     return repository.getAdmin(id);
   })();
   if (!record) notFound();
+  const categories = await getAdminTripCategories();
   return (
     <main className="catalog-surface min-h-screen px-5 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1440px]">
@@ -37,7 +39,7 @@ export default async function EditCatalogPage({
           <p className="text-sm text-ink-muted">Status: {record.status}</p>
         </div>
         <div className="mt-10">
-          <CatalogEditor record={record} />
+          <CatalogEditor record={record} categories={categories} />
         </div>
       </div>
     </main>

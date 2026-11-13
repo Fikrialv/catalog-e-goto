@@ -38,13 +38,16 @@ describe("published snapshot workflow", () => {
 describe("catalog safety helpers", () => {
   it("validates a separate admin-managed highlight discount", () => {
     const destination = clone(destinations[0]);
+    destination.highlights = [];
     const highlight = {
       id: "test-highlight",
       enabled: true,
       label: "Promo Oktober",
       scheduleId: destination.schedules[0].id,
       priceId: destination.prices[0].id,
-      discountAmount: destination.prices[0].amount - 100000,
+      discountType: "fixed" as const,
+      discountValue: 25000,
+      discountAmount: destination.prices[0].amount - 25000,
     };
     destination.highlights = [highlight];
     expect(
@@ -128,17 +131,27 @@ describe("catalog safety helpers", () => {
     expect(() => destinationPayloadSchema.parse(invalid)).toThrow();
   });
 
-  it("rejects a departure that crosses catalog months", () => {
+  it("accepts a departure that crosses October into November", () => {
     const destination = clone(destinations[3]);
+    destination.highlights = [];
     destination.schedules[0] = {
       ...destination.schedules[0],
       startDate: "2026-10-31",
       endDate: "2026-11-02",
     };
 
-    expect(() => destinationPayloadSchema.parse(destination)).toThrow(
-      "Jadwal katalog wajib berada dalam satu bulan.",
-    );
+    expect(() => destinationPayloadSchema.parse(destination)).not.toThrow();
+  });
+
+  it("accepts a departure that crosses December into January", () => {
+    const destination = clone(destinations[3]);
+    destination.highlights = [];
+    destination.schedules[0] = {
+      ...destination.schedules[0],
+      startDate: "2026-12-31",
+      endDate: "2027-01-02",
+    };
+    expect(() => destinationPayloadSchema.parse(destination)).not.toThrow();
   });
 
   it("returns human-readable changed fields", () => {

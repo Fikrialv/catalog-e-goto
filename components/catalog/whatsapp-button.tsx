@@ -3,6 +3,7 @@
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { whatsappHref, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { formatScheduleLabel } from "@/lib/format";
+import type { TripPriceBreakdown } from "@/lib/pricing";
 import { trackCatalogEvent } from "@/components/catalog/event-tracker";
 import { useCustomerPreferences } from "@/components/site/customer-preferences";
 import type {
@@ -17,12 +18,14 @@ export function WhatsAppButton({
   price,
   voucherRedemptionId,
   voucherAmount,
+  breakdown,
 }: {
   destination: TripDestination;
   schedule: DepartureSchedule | undefined;
   price: PriceOption;
   voucherRedemptionId?: string;
   voucherAmount?: number;
+  breakdown?: TripPriceBreakdown;
 }) {
   const { language } = useCustomerPreferences();
   const copy =
@@ -48,8 +51,17 @@ export function WhatsAppButton({
     price,
     voucherRedemptionId,
     voucherAmount,
+    breakdown,
   );
 
+  if (!schedule || schedule.publicationStatus !== "published" ||
+      schedule.availabilityStatus !== "available") {
+    return (
+      <p role="status" className="rounded-xl bg-paper p-4 text-sm text-ink-muted">
+        Pilih tanggal keberangkatan yang tersedia sebelum bertanya lewat WhatsApp.
+      </p>
+    );
+  }
   if (!WHATSAPP_NUMBER || !href) {
     return (
       <div className="rounded-[1.25rem] border border-dashed border-ink/20 bg-paper p-5">

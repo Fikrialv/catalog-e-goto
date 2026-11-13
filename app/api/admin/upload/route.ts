@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/services/auth";
-import { deleteCatalogImage, uploadCatalogImage } from "@/services/storage";
+import { authorizeAdminApi } from "@/lib/api-auth";
+import { uploadCatalogImage } from "@/services/storage";
 import { isSafeStorageDestinationId } from "@/lib/storage";
 
 export async function POST(request: Request) {
-  const user = await requireAdmin(["ADMIN", "EDITOR"]);
+  const auth = await authorizeAdminApi(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const formData = await request.formData();
   const file = formData.get("file");
   const destinationId = String(formData.get("destinationId") ?? "");
@@ -29,24 +31,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  await requireAdmin(["ADMIN", "EDITOR"]);
-  const body = (await request.json().catch(() => null)) as {
-    src?: string;
-    destinationId?: string;
-  } | null;
-  if (!body?.src || !body.destinationId)
-    return NextResponse.json(
-      { error: "Source dan destination ID wajib diisi." },
-      { status: 400 },
-    );
-  try {
-    await deleteCatalogImage(body.src, body.destinationId);
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Hapus gambar gagal." },
-      { status: 400 },
-    );
-  }
+export async function DELETE() {
+  const auth = await authorizeAdminApi(["ADMIN", "EDITOR"]);
+  if (!auth.ok) return auth.response;
+  return NextResponse.json(
+    { error: "Penghapusan langsung gambar dinonaktifkan agar snapshot Published tetap aman." },
+    { status: 409 },
+  );
 }
