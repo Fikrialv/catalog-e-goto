@@ -39,16 +39,20 @@ grant select, insert, update, delete on public.list_trips to authenticated;
 grant select on public.list_trip_categories to anon, authenticated;
 grant insert, update, delete on public.list_trip_categories to authenticated;
 
+drop policy if exists "public reads published list trips" on public.list_trips;
 create policy "public reads published list trips" on public.list_trips
   for select to anon using (publication_status='published' and published_payload is not null);
+drop policy if exists "staff read all list trips" on public.list_trips;
 create policy "staff read all list trips" on public.list_trips
   for select to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR','VIEWER')));
+drop policy if exists "editors insert list trips" on public.list_trips;
 create policy "editors insert list trips" on public.list_trips
   for insert to authenticated with check (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR')));
+drop policy if exists "editors update list trips" on public.list_trips;
 create policy "editors update list trips" on public.list_trips
   for update to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
@@ -56,24 +60,30 @@ create policy "editors update list trips" on public.list_trips
   with check (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR')));
+drop policy if exists "editors delete list trips" on public.list_trips;
 create policy "editors delete list trips" on public.list_trips
   for delete to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR')));
+drop policy if exists "public reads active list trip categories" on public.list_trip_categories;
 create policy "public reads active list trip categories" on public.list_trip_categories
   for select to anon using (is_active);
+drop policy if exists "staff reads all list trip categories" on public.list_trip_categories;
 create policy "staff reads all list trip categories" on public.list_trip_categories
   for select to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR','VIEWER')));
+drop policy if exists "admins insert list trip categories" on public.list_trip_categories;
 create policy "admins insert list trip categories" on public.list_trip_categories
   for insert to authenticated with check (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid()) and p.role='ADMIN'));
+drop policy if exists "admins update list trip categories" on public.list_trip_categories;
 create policy "admins update list trip categories" on public.list_trip_categories
   for update to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid()) and p.role='ADMIN'))
   with check (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid()) and p.role='ADMIN'));
+drop policy if exists "admins delete list trip categories" on public.list_trip_categories;
 create policy "admins delete list trip categories" on public.list_trip_categories
   for delete to authenticated using (
     exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid()) and p.role='ADMIN'));
@@ -81,12 +91,15 @@ create policy "admins delete list trip categories" on public.list_trip_categorie
 insert into storage.buckets (id,name,public)
 values ('list-trip-images','list-trip-images',true)
 on conflict (id) do nothing;
+drop policy if exists "list trip images public read" on storage.objects;
 create policy "list trip images public read" on storage.objects
   for select to anon,authenticated using (bucket_id='list-trip-images');
+drop policy if exists "list trip images staff insert" on storage.objects;
 create policy "list trip images staff insert" on storage.objects
   for insert to authenticated with check (bucket_id='list-trip-images'
     and exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR')));
+drop policy if exists "list trip images staff update" on storage.objects;
 create policy "list trip images staff update" on storage.objects
   for update to authenticated using (bucket_id='list-trip-images'
     and exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
@@ -94,6 +107,7 @@ create policy "list trip images staff update" on storage.objects
   with check (bucket_id='list-trip-images'
     and exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
       and p.role in ('ADMIN','EDITOR')));
+drop policy if exists "list trip images staff delete" on storage.objects;
 create policy "list trip images staff delete" on storage.objects
   for delete to authenticated using (bucket_id='list-trip-images'
     and exists (select 1 from public.admin_profiles p where p.user_id=(select auth.uid())
