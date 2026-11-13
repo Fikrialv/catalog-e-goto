@@ -1,5 +1,4 @@
 import type { TripCategory, TripDestination } from "@/types/catalog";
-import type { ListTrip } from "@/types/list-trip";
 
 export function normalizeTripCategories(categories: string[]): string[] {
   return [...new Set(categories.map((item) => item.trim().toLowerCase()).filter(Boolean))];
@@ -33,7 +32,7 @@ export function publicCategoryNamesForTrip(
   ).join(" · ");
 }
 
-export function filterListTrips<T extends Pick<ListTrip,"name"|"description"|"location"|"category"|"categories">>(
+export function filterListTrips<T extends Pick<TripDestination,"name"|"description"|"category"|"categories"> & {location?:string}>(
   trips: T[],
   category: string,
   query: string,
@@ -48,7 +47,7 @@ export function filterListTrips<T extends Pick<ListTrip,"name"|"description"|"lo
 }
 
 export function buildTripInquiryMessage(
-  trip: Pick<ListTrip, "name"|"slug"|"routes"|"location">,
+  trip: Pick<TripDestination, "name"|"slug"|"routes"|"location">,
   routeId: string,
   origin: string,
 ): string {
