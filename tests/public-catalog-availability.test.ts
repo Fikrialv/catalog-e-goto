@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { destinations } from "@/data/catalog";
 import { filterListTrips } from "@/lib/list-trip";
-import { isUpcomingAvailableSchedule } from "@/lib/catalog-utils";
+import { isUpcomingAvailableSchedule, upcomingCatalogMonths } from "@/lib/catalog-utils";
 import { getCatalogMonthsFromDestinations, getMonthlyDestinationsFromDestinations } from "@/services/catalog";
 
 const today = "2026-11-13";
@@ -18,12 +18,21 @@ function sample() {
 }
 
 describe("separated List Trip and scheduled Catalog", () => {
+  it("makes every upcoming month selectable, even without trips, including year rollover", () => {
+    expect(upcomingCatalogMonths("2026-11-14").slice(0, 3)).toEqual(["2026-11", "2026-12", "2027-01"]);
+    const trip = sample();
+    const months = getCatalogMonthsFromDestinations([trip], "2026-11-14");
+    expect(months.find((m) => m.key === "2026-12")).toBeDefined();
+    expect(getMonthlyDestinationsFromDestinations([trip], {monthKey: "2026-12"}, "2026-11-14")).toEqual([]);
+    expect(getMonthlyDestinationsFromDestinations([trip], {monthKey: "2026-11"}, "2026-11-14")).toHaveLength(1);
+  });
+
   it("retains published inquiry trips in List Trip even without departures", () => {
     const inquiry = sample();
     inquiry.schedules = [];
     inquiry.prices = [];
     expect(filterListTrips([inquiry], "all", "")).toHaveLength(1);
-    expect(getCatalogMonthsFromDestinations([inquiry], today)).toEqual([]);
+    expect(getCatalogMonthsFromDestinations([inquiry], today).map((m) => m.key).slice(0, 2)).toEqual(["2026-11", "2026-12"]);
   });
 
   it("shows only upcoming published available schedules", () => {
@@ -35,7 +44,7 @@ describe("separated List Trip and scheduled Catalog", () => {
       { id: "cancelled", startDate: "2026-11-23", endDate: "2026-11-25", publicationStatus: "published", availabilityStatus: "cancelled" },
       { id: "draft", startDate: "2026-11-24", endDate: "2026-11-26", publicationStatus: "draft", availabilityStatus: "available" },
     );
-    expect(getCatalogMonthsFromDestinations([trip], today).map((m) => m.key)).toEqual(["2026-11"]);
+    expect(getCatalogMonthsFromDestinations([trip], today).map((m) => m.key).slice(0, 2)).toEqual(["2026-11", "2026-12"]);
     const published = getMonthlyDestinationsFromDestinations([trip], {monthKey:"2026-11"}, today);
     expect(published).toHaveLength(1);
     expect(published[0].schedules.map((schedule) => schedule.id)).toEqual(["future-open"]);
@@ -54,7 +63,7 @@ describe("separated List Trip and scheduled Catalog", () => {
   it("hides unpublished destinations from scheduled catalog even when schedule is available", () => {
     const draft = sample();
     draft.publicationStatus = "draft";
-    expect(getCatalogMonthsFromDestinations([draft], today)).toEqual([]);
+    expect(getCatalogMonthsFromDestinations([draft], today).map((m) => m.key).slice(0, 2)).toEqual(["2026-11", "2026-12"]);
     expect(getMonthlyDestinationsFromDestinations([draft], {monthKey:"2026-11"}, today)).toEqual([]);
   });
 });
