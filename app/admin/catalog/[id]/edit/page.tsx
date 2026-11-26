@@ -8,10 +8,13 @@ import { getAdminTripCategories } from "@/services/trip-categories";
 
 export default async function EditCatalogPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const { id } = await params;
+  const { month } = await searchParams;
   const record = await (async () => {
     await requireAdmin(["ADMIN", "EDITOR"]);
     const repository = await getCatalogRepository();
@@ -39,7 +42,7 @@ export default async function EditCatalogPage({
           <p className="text-sm text-ink-muted">Status: {record.status}</p>
         </div>
         <div className="mt-10">
-          <CatalogEditor record={record} categories={categories} />
+          <CatalogEditor record={record} categories={categories} initialMonth={month} />
         </div>
       </div>
     </main>
