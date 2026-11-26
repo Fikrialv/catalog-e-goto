@@ -24,6 +24,7 @@ import {
 import { parseDestinationPayload } from "@/lib/validation";
 import { safePublicTrip } from "@/lib/public-trip";
 import { assertCatalogDraftVersion, CATALOG_CONFLICT_MESSAGE } from "@/lib/catalog-draft-concurrency";
+import { catalogDuplicateIdentity } from "@/lib/catalog-duplicate";
 
 export type CatalogRepository = {
   listPublic(): Promise<TripDestination[]>;
@@ -372,8 +373,9 @@ class SupabaseCatalogRepository implements CatalogRepository {
     const record = await this.row(id);
     if (!record) throw new Error("Destination tidak ditemukan.");
     const payload = clone(record.draft);
-    payload.id = `${payload.id}-copy-${Date.now()}`;
-    payload.slug = `${payload.slug}-copy`;
+    const { id: copyId, slug: copySlug } = catalogDuplicateIdentity(payload.slug, crypto.randomUUID());
+    payload.id = copyId;
+    payload.slug = copySlug;
     payload.name = `${payload.name} (copy)`;
     payload.publicationStatus = "draft";
     return this.createDraft(payload, userId);
