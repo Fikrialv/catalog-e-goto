@@ -18,6 +18,25 @@ describe("Catalog Save draft regression", () => {
     expect(Object.hasOwn(normalized, "sortOrder")).toBe(false);
   });
 
+  it("saves a draft with a newly added unfinished price and gallery slot", () => {
+    const trip = structuredClone(destinations[0]);
+    trip.prices.push({ id: "new-price", label: "Meeting point baru", amount: 0, sortOrder: trip.prices.length + 1 });
+    trip.gallery.push({ src: "", alt: "", sortOrder: trip.gallery.length + 1 });
+    const draft = normalizeDestination(trip, "draft");
+    expect(draft.prices.at(-1)?.amount).toBe(0);
+    expect(draft.gallery.at(-1)?.src).toBe("");
+    expect(() => normalizeDestination(draft, "published")).toThrow();
+  });
+
+  it("rejects invalid negative or incomplete published price data", () => {
+    const trip = structuredClone(destinations[0]);
+    trip.prices[0].amount = -1;
+    expect(() => normalizeDestination(trip, "draft")).toThrow();
+    trip.prices[0].amount = 0;
+    expect(() => normalizeDestination(trip, "draft")).not.toThrow();
+    expect(() => normalizeDestination(trip, "published")).toThrow();
+  });
+
   it("uses the selected month from the admin schedule list, not the first trip departure", () => {
     const schedules = destinations[0].schedules;
     expect(getInitialCatalogEditorMonth("2027-01", schedules, "2026-11")).toBe("2027-01");
