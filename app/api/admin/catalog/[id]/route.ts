@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { authorizeAdminApi } from "@/lib/api-auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
 import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
+import { CATALOG_CONFLICT_MESSAGE } from "@/lib/catalog-draft-concurrency";
 
 export async function GET(
   _request: Request,
@@ -33,6 +34,7 @@ export async function PATCH(
     action?: string;
     payload?: unknown;
     confirmed?: boolean;
+    expectedVersion?: number;
   } | null;
   if (!body?.action)
     return NextResponse.json({ error: "Action wajib diisi." }, { status: 400 });
@@ -59,6 +61,7 @@ export async function PATCH(
         id,
         parseDestinationPayload(body.payload),
         user.id,
+        body.expectedVersion as number,
       );
     } else if (body.action === "publish")
       result = await repository.publish(id, user.id);
@@ -85,7 +88,7 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       { error: catalogSaveErrorMessage(error) },
-      { status: 400 },
+      { status: error instanceof Error && error.message === CATALOG_CONFLICT_MESSAGE ? 409 : 400 },
     );
   }
 }
