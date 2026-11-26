@@ -37,7 +37,7 @@ export type CatalogRepository = {
     userId: string,
     expectedVersion: number,
   ): Promise<CatalogRecord>;
-  publish(id: string, userId: string): Promise<CatalogRecord>;
+  publish(id: string, userId: string, expectedVersion: number): Promise<CatalogRecord>;
   unpublish(id: string, userId: string): Promise<CatalogRecord>;
   archive(id: string, userId: string): Promise<CatalogRecord>;
   restore(id: string, userId: string): Promise<CatalogRecord>;
@@ -263,9 +263,10 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return this.fromRow(data);
   }
 
-  async publish(id: string, userId: string) {
+  async publish(id: string, userId: string, expectedVersion: number) {
     const record = await this.row(id);
     if (!record) throw new Error("Destination tidak ditemukan.");
+    assertCatalogDraftVersion(record.draftVersion, expectedVersion);
     const publishedAt = nowIso();
     const published = normalizeDestination(record.draft, "published");
     published.publishedAt = publishedAt;
@@ -281,9 +282,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
         updated_at: publishedAt,
       })
       .eq("id", id)
+      .eq("draft_version", expectedVersion)
       .select("*")
-      .single<SupabaseRecordRow>();
+      .maybeSingle<SupabaseRecordRow>();
     if (error) throw error;
+    if (!data) throw new Error(CATALOG_CONFLICT_MESSAGE);
     await this.writeAudit(
       "PUBLISH",
       record.published,
