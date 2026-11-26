@@ -594,6 +594,11 @@ export function CatalogEditor({
     }));
   }
   function addHighlight() {
+    if (!payload.prices.some((price) => price.amount > 0) ||
+        !payload.schedules.some((schedule) => schedule.startDate)) {
+      setError("Tambahkan harga dan jadwal terlebih dahulu sebelum membuat promo.");
+      return;
+    }
     updatePayload((current) => {
       const schedule =
         current.schedules.find(
@@ -1200,7 +1205,11 @@ export function CatalogEditor({
                         ...current,
                         schedules: current.schedules.map((item, itemIndex) =>
                           itemIndex === index
-                            ? { ...item, startDate: value }
+                            ? {
+                                ...item,
+                                startDate: value,
+                                endDate: moveScheduleEndDate(item.startDate, item.endDate, value),
+                              }
                             : item,
                         ),
                       }));
@@ -1331,12 +1340,16 @@ export function CatalogEditor({
                     <button
                       type="button"
                       className={`${smallButtonClass} border-red-200 text-red-700 hover:border-red-300`}
-                      onClick={() =>
+                      onClick={() => {
+                        if (payload.highlights.some((offer) => offer.scheduleId === schedule.id)) {
+                          setError("Jadwal ini digunakan oleh highlight promo. Hapus atau pindahkan promo terlebih dahulu.");
+                          return;
+                        }
                         updatePayload((current) => ({
                           ...current,
                           schedules: removeItem(current.schedules, index),
-                        }))
-                      }
+                        }));
+                      }}
                     >
                       <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                       Hapus
