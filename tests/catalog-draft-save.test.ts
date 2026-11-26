@@ -4,8 +4,18 @@ import { normalizeDestination, nextUnusedScheduleDate, moveScheduleEndDate } fro
 import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
 import { getInitialCatalogEditorMonth } from "@/lib/catalog-editor-month";
 import { assertCatalogDraftVersion, CATALOG_CONFLICT_MESSAGE } from "@/lib/catalog-draft-concurrency";
+import { catalogDuplicateIdentity } from "@/lib/catalog-duplicate";
 
 describe("Catalog Save draft regression", () => {
+  it("gives repeated duplicate actions unique IDs and URL slugs", () => {
+    const first = catalogDuplicateIdentity("gunung-rinjani", "abc12345");
+    const second = catalogDuplicateIdentity("gunung-rinjani", "def67890");
+    expect(first.slug).not.toBe(second.slug);
+    expect(first.id).not.toBe(second.id);
+    expect(first.slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    expect(catalogDuplicateIdentity("a".repeat(115), "abc12345").slug.length).toBeLessThanOrEqual(120);
+  });
+
   it("rejects a stale draft version before one admin overwrites another admin", () => {
     expect(() => assertCatalogDraftVersion(8, 7)).toThrow(CATALOG_CONFLICT_MESSAGE);
     expect(() => assertCatalogDraftVersion(8, 8)).not.toThrow();
