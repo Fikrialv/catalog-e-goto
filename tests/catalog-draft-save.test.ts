@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { destinations } from "@/data/catalog";
-import { normalizeDestination, nextUnusedScheduleDate } from "@/lib/catalog-utils";
-import { parseDestinationPayload } from "@/lib/validation";
+import { normalizeDestination, nextUnusedScheduleDate, moveScheduleEndDate } from "@/lib/catalog-utils";
+import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
 import { getInitialCatalogEditorMonth } from "@/lib/catalog-editor-month";
 
 describe("Catalog Save draft regression", () => {
@@ -35,6 +35,27 @@ describe("Catalog Save draft regression", () => {
     trip.prices[0].amount = 0;
     expect(() => normalizeDestination(trip, "draft")).not.toThrow();
     expect(() => normalizeDestination(trip, "published")).toThrow();
+  });
+
+  it("preserves departure duration when moved across months", () => {
+    expect(moveScheduleEndDate("2026-11-28", "2026-11-29", "2027-01-16")).toBe("2027-01-17");
+    expect(moveScheduleEndDate("2026-11-28", null, "2027-01-16")).toBe(null);
+    const trip = structuredClone(destinations[0]);
+    trip.schedules[0] = {
+      ...trip.schedules[0],
+      startDate: "2027-01-16",
+      endDate: moveScheduleEndDate(trip.schedules[0].startDate, trip.schedules[0].endDate, "2027-01-16"),
+    };
+    expect(() => normalizeDestination(trip,"draft")).not.toThrow();
+  });
+
+  it("returns a readable field-level error instead of raw validation JSON", () => {
+    const trip = structuredClone(destinations[0]);
+    trip.schedules[0].endDate = "2025-01-01";
+    let thrown: unknown;
+    try { parseDestinationPayload(trip); } catch (error) { thrown = error; }
+    expect(catalogSaveErrorMessage(thrown)).toContain("Periksa schedules");
+    expect(catalogSaveErrorMessage(thrown)).toContain("End date");
   });
 
   it("uses the selected month from the admin schedule list, not the first trip departure", () => {
