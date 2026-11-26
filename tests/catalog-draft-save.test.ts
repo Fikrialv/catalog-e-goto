@@ -3,8 +3,14 @@ import { destinations } from "@/data/catalog";
 import { normalizeDestination, nextUnusedScheduleDate, moveScheduleEndDate } from "@/lib/catalog-utils";
 import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
 import { getInitialCatalogEditorMonth } from "@/lib/catalog-editor-month";
+import { assertCatalogDraftVersion, CATALOG_CONFLICT_MESSAGE } from "@/lib/catalog-draft-concurrency";
 
 describe("Catalog Save draft regression", () => {
+  it("rejects a stale draft version before one admin overwrites another admin", () => {
+    expect(() => assertCatalogDraftVersion(8, 7)).toThrow(CATALOG_CONFLICT_MESSAGE);
+    expect(() => assertCatalogDraftVersion(8, 8)).not.toThrow();
+    expect(() => assertCatalogDraftVersion(8, undefined)).toThrow(CATALOG_CONFLICT_MESSAGE);
+  });
   it("accepts a draft payload after switching a departure to another month", () => {
     const trip = structuredClone(destinations[0]);
     trip.schedules[0] = {
