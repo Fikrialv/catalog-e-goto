@@ -390,6 +390,7 @@ export function CatalogEditor({
     clone(record.draft),
   );
   const [dirty, setDirty] = useState(false);
+  const [draftVersion, setDraftVersion] = useState(record.draftVersion);
   const [selectedScheduleMonth, setSelectedScheduleMonth] = useState(() =>
     getInitialCatalogEditorMonth(initialMonth, record.draft.schedules, new Date().toISOString().slice(0,7)),
   );
@@ -490,12 +491,15 @@ export function CatalogEditor({
           method: isNew ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isNew ? { action: "create", payload } : { action: "save-draft", payload },
+            isNew ? { action: "create", payload } : { action: "save-draft", payload, expectedVersion: draftVersion },
           ),
         },
       );
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Draft gagal disimpan.");
+      if (result.record && typeof result.record.draftVersion === "number") {
+        setDraftVersion(result.record.draftVersion);
+      }
       setDirty(false);
       setNotice("Draft tersimpan. Public belum berubah sampai Publish.");
       if (isNew && result.record?.id) {
