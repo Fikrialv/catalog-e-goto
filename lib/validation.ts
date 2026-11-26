@@ -60,8 +60,8 @@ const route = z.object({
 });
 
 const image = z.object({
-  src: z.string().trim().min(1, "Source gambar wajib diisi."),
-  alt: z.string().trim().min(3, "Alt text wajib diisi."),
+  src: z.string().trim(),
+  alt: z.string().trim(),
   sortOrder: z.number().int().positive(),
 });
 
@@ -70,7 +70,7 @@ const coverImage = image.extend({ src: z.string().trim() });
 const price = z.object({
   id: z.string().min(1),
   label: z.string().trim().min(1),
-  amount: z.number().int().positive("Harga harus lebih besar dari 0."),
+  amount: z.number().int().nonnegative("Harga tidak boleh negatif."),
   sortOrder: z.number().int().positive(),
 });
 
@@ -150,6 +150,24 @@ export const destinationPayloadSchema = z
     if (value.publicationStatus === "published" && !value.coverImage.src.trim()) {
       context.addIssue({ code: "custom", path: ["coverImage", "src"],
         message: "Upload cover gambar sebelum Publish." });
+    }
+    if (value.publicationStatus === "published") {
+      for (const [index, price] of value.prices.entries()) {
+        if (price.amount <= 0) {
+          context.addIssue({ code: "custom", path: ["prices", index, "amount"],
+            message: "Harga harus lebih besar dari 0 sebelum Publish." });
+        }
+      }
+      if (value.coverImage.alt.trim().length < 3) {
+        context.addIssue({ code: "custom", path: ["coverImage", "alt"],
+          message: "Alt text cover wajib diisi sebelum Publish." });
+      }
+      for (const [index, galleryImage] of value.gallery.entries()) {
+        if (!galleryImage.src.trim() || galleryImage.alt.trim().length < 3) {
+          context.addIssue({ code: "custom", path: ["gallery", index],
+            message: "Upload gambar dan isi alt text galeri sebelum Publish." });
+        }
+      }
     }
     // A Published inquiry trip can have no schedule or price.
     // Booking and voucher APIs continue to enforce a valid published schedule and price.
