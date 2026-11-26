@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { authorizeAdminApi } from "@/lib/api-auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
-import { parseDestinationPayload } from "@/lib/validation";
+import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
 
 export async function GET() {
   const auth = await authorizeAdminApi();
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ record }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Create gagal." },
+      { error: catalogSaveErrorMessage(error) },
       { status: 400 },
     );
   }
