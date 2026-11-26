@@ -64,7 +64,7 @@ export async function PATCH(
         body.expectedVersion as number,
       );
     } else if (body.action === "publish")
-      result = await repository.publish(id, user.id);
+      result = await repository.publish(id, user.id, body.expectedVersion as number);
     else if (body.action === "unpublish")
       result = await repository.unpublish(id, user.id);
     else if (body.action === "archive")
