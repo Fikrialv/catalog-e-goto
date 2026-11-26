@@ -530,7 +530,7 @@ export function CatalogEditor({
       const response = await fetch(`/api/admin/catalog/${record.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, confirmed: true }),
+        body: JSON.stringify({ action, confirmed: true, expectedVersion: draftVersion }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Aksi gagal.");
