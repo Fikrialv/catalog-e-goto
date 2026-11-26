@@ -594,9 +594,9 @@ export function CatalogEditor({
     }));
   }
   function addHighlight() {
-    if (!payload.prices.some((price) => price.amount > 0) ||
+    if (!payload.prices.some((price) => price.amount > 25000) ||
         !payload.schedules.some((schedule) => schedule.startDate)) {
-      setError("Tambahkan harga dan jadwal terlebih dahulu sebelum membuat promo.");
+      setError("Tambahkan jadwal dan harga normal di atas Rp25.000 sebelum membuat promo.");
       return;
     }
     updatePayload((current) => {
@@ -604,6 +604,7 @@ export function CatalogEditor({
         current.schedules.find(
           (item) => monthKeyFromDate(item.startDate) === activeScheduleMonth,
         ) ?? current.schedules[0];
+      const price = current.prices.find((item) => item.amount > 25000);
       return {
         ...current,
         highlights: [
@@ -613,13 +614,10 @@ export function CatalogEditor({
             enabled: true,
             label: "Promo terbatas",
             scheduleId: schedule?.id ?? "",
-            priceId: current.prices[0]?.id ?? "",
-            discountAmount: Math.max(
-              0,
-              (current.prices[0]?.amount ?? 0) - 50000,
-            ),
+            priceId: price?.id ?? "",
+            discountAmount: (price?.amount ?? 25000) - 25000,
             discountType: "fixed",
-            discountValue: 50000,
+            discountValue: 25000,
           },
         ],
       };
