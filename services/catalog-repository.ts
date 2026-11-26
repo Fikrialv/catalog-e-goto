@@ -23,6 +23,7 @@ import {
 } from "@/lib/catalog-utils";
 import { parseDestinationPayload } from "@/lib/validation";
 import { safePublicTrip } from "@/lib/public-trip";
+import { assertCatalogDraftVersion, CATALOG_CONFLICT_MESSAGE } from "@/lib/catalog-draft-concurrency";
 
 export type CatalogRepository = {
   listPublic(): Promise<TripDestination[]>;
@@ -34,6 +35,7 @@ export type CatalogRepository = {
     id: string,
     payload: TripDestination,
     userId: string,
+    expectedVersion: number,
   ): Promise<CatalogRecord>;
   publish(id: string, userId: string): Promise<CatalogRecord>;
   unpublish(id: string, userId: string): Promise<CatalogRecord>;
@@ -226,9 +228,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
     return record;
   }
 
-  async saveDraft(id: string, payload: TripDestination, userId: string) {
+  async saveDraft(id: string, payload: TripDestination, userId: string, expectedVersion: number) {
     const record = await this.row(id);
     if (!record) throw new Error("Destination tidak ditemukan.");
+    if (payload.id !== id) throw new Error("ID Catalog tidak boleh diubah.");
+    assertCatalogDraftVersion(record.draftVersion, expectedVersion);
     const parsed = normalizeDestination(
       parseDestinationPayload(payload),
       "draft",
@@ -243,9 +247,11 @@ class SupabaseCatalogRepository implements CatalogRepository {
         updated_at: nowIso(),
       })
       .eq("id", id)
+      .eq("draft_version", expectedVersion)
       .select("*")
-      .single<SupabaseRecordRow>();
+      .maybeSingle<SupabaseRecordRow>();
     if (error) throw error;
+    if (!data) throw new Error(CATALOG_CONFLICT_MESSAGE);
     await this.writeAudit(
       "SAVE_DRAFT",
       record.draft,
