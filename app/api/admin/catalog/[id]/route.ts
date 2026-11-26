@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { authorizeAdminApi } from "@/lib/api-auth";
 import { getCatalogRepository } from "@/services/catalog-repository";
-import { parseDestinationPayload } from "@/lib/validation";
+import { parseDestinationPayload, catalogSaveErrorMessage } from "@/lib/validation";
 
 export async function GET(
   _request: Request,
@@ -84,7 +84,7 @@ export async function PATCH(
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Aksi gagal." },
+      { error: catalogSaveErrorMessage(error) },
       { status: 400 },
     );
   }
