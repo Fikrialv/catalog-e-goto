@@ -330,6 +330,17 @@ function migrateLegacyHighlight(value: unknown): unknown {
   return payload;
 }
 
+/** Give admins one actionable field-level error instead of raw Zod JSON. */
+export function catalogSaveErrorMessage(error: unknown): string {
+  if (error instanceof z.ZodError) {
+    const issue = error.issues[0];
+    if (!issue) return "Data Catalog tidak valid.";
+    const field = issue.path.length ? issue.path.join(".") : "data trip";
+    return `Periksa ${field}: ${issue.message}`;
+  }
+  return error instanceof Error ? error.message : "Aksi Catalog gagal. Coba ulang.";
+}
+
 export function validateSlug(value: string) {
   return slug.safeParse(value).success;
 }
