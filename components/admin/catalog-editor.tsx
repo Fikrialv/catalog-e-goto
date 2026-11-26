@@ -17,6 +17,7 @@ import { createChangeSummary, clone, moveScheduleEndDate, nextUnusedScheduleDate
 import { monthKeyFromDate } from "@/lib/catalog-utils";
 import { categoriesForTrip } from "@/lib/list-trip";
 import { formatMonthLabel } from "@/lib/format";
+import { getInitialCatalogEditorMonth } from "@/lib/catalog-editor-month";
 
 const inputClass =
   "min-h-11 w-full rounded-xl border border-ink/15 bg-paper px-3 text-sm outline-none transition-[border-color,box-shadow] focus:border-accent focus:ring-2 focus:ring-accent/20";
@@ -376,11 +377,13 @@ export function CatalogEditor({
   categories = [],
   isNew = false,
   mode = "catalog",
+  initialMonth,
 }: {
   record: CatalogRecord;
   categories?: TripCategory[];
   isNew?: boolean;
   mode?: "trip" | "catalog";
+  initialMonth?: string;
 }) {
   const router = useRouter();
   const [payload, setPayload] = useState<TripDestination>(() =>
@@ -388,9 +391,7 @@ export function CatalogEditor({
   );
   const [dirty, setDirty] = useState(false);
   const [selectedScheduleMonth, setSelectedScheduleMonth] = useState(() =>
-    monthKeyFromDate(
-      record.draft.schedules[0]?.startDate ?? new Date().toISOString(),
-    ),
+    getInitialCatalogEditorMonth(initialMonth, record.draft.schedules, new Date().toISOString().slice(0,7)),
   );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
